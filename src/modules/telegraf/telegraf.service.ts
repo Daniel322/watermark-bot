@@ -12,9 +12,11 @@ export class TelegrafService implements OnModuleInit, OnModuleDestroy {
 
   onModuleInit(): void {
     const token = this.configService.get<string>('telegram.token');
-    this.bot = new Telegraf(token);
-    this.setListeners();
-    this.bot.launch();
+    if (token) {
+      this.bot = new Telegraf(token);
+      this.setListeners();
+      this.bot.launch();
+    }
   }
 
   onModuleDestroy() {
@@ -29,5 +31,5 @@ export class TelegrafService implements OnModuleInit, OnModuleDestroy {
   @Bind
   onStart(ctx: Context): void {
     ctx.reply('Welcome');
-  };
+  }
 }
