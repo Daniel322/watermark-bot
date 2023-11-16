@@ -3,10 +3,11 @@ import { ConfigModule } from '@nestjs/config';
 
 import { EnvConfig } from '@common/configs';
 
-import { WatermarkModule } from './watermark/watermark.module';
+import { TelegrafModule } from '@modules/telegraf/telegraf.module';
+import { WatermarkModule } from '@modules/watermark/watermark.module';
 
 @Module({
-  imports: [ConfigModule.forRoot(EnvConfig), WatermarkModule],
+  imports: [ConfigModule.forRoot(EnvConfig), TelegrafModule, WatermarkModule],
   controllers: [],
   providers: [],
 })
