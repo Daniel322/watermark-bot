@@ -13,16 +13,18 @@ import { Cache } from 'cache-manager';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 
 import { Bind } from '@common/decorators';
+import { WatermarkService } from '@modules/watermark/watermark.service';
 
 import { MESSAGES, SYS_MESSAGES } from './constants';
 
 @Injectable()
 export class TelegrafService implements OnModuleInit, OnModuleDestroy {
-  private bot: Telegraf;
+  bot: Telegraf;
 
   constructor(
     private readonly configService: ConfigService,
     private readonly httpService: HttpService,
+    private readonly watermarkService: WatermarkService,
     @Inject(CACHE_MANAGER)
     private readonly cacheManager: Cache,
   ) {}
@@ -49,7 +51,6 @@ export class TelegrafService implements OnModuleInit, OnModuleDestroy {
 
   @Bind
   onStart(ctx: Context): void {
-    console.log('TelegrafService ~ onStart ~ ctx:', ctx.message.from);
     ctx.reply(MESSAGES.WELCOME);
   }
 
@@ -62,9 +63,12 @@ export class TelegrafService implements OnModuleInit, OnModuleDestroy {
         const buf = await this.cacheManager.get<Buffer>(String(from.id));
         if (buf == null) throw new Error(SYS_MESSAGES.FILE_BUF_NOT_FOUND);
 
-        console.log('TelegrafService ~ onText ~ buf:', text, buf);
-        // TODO make watermark service call with buffer and text;
-        await ctx.replyWithPhoto({ source: buf });
+        const bufWithWatermark =
+          await this.watermarkService.setWatermarkOnPhoto(
+            { buffer: buf } as Express.Multer.File,
+            text,
+          );
+        await ctx.replyWithPhoto({ source: bufWithWatermark });
       } else {
         await ctx.reply(MESSAGES.BAD_REQUEST);
       }
