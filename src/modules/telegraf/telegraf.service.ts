@@ -64,10 +64,7 @@ export class TelegrafService implements OnModuleInit, OnModuleDestroy {
         if (buf == null) throw new Error(SYS_MESSAGES.FILE_BUF_NOT_FOUND);
 
         const bufWithWatermark =
-          await this.watermarkService.setWatermarkOnPhoto(
-            { buffer: buf } as Express.Multer.File,
-            text,
-          );
+          await this.watermarkService.setWatermarkOnPhotoForTelegraf(buf, text);
         await ctx.replyWithPhoto({ source: bufWithWatermark });
       } else {
         await ctx.reply(MESSAGES.BAD_REQUEST);
