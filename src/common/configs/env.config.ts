@@ -10,7 +10,7 @@ const telegramApi = registerAs('telegram', () => ({
 }));
 
 const cacheManager = registerAs('cache', () => ({
-  fileBufTtl: Number(process.env.FILE_BUF_TTL ?? 500),
+  fileBufTtl: Number(process.env.FILE_BUF_TTL ?? 300000),
 }));
 
 export const EnvConfig = {

@@ -44,6 +44,7 @@ export class TelegrafService implements OnModuleInit, OnModuleDestroy {
   setListeners(): void {
     this.bot.start(this.onStart);
     this.bot.on(message('photo'), this.onPhoto);
+    this.bot.on(message('text'), this.onText);
   }
 
   @Bind
@@ -53,19 +54,44 @@ export class TelegrafService implements OnModuleInit, OnModuleDestroy {
   }
 
   @Bind
+  async onText(ctx: Context): Promise<void> {
+    try {
+      if ('text' in ctx.message) {
+        const { from, text } = ctx.message;
+
+        const buf = await this.cacheManager.get<Buffer>(String(from.id));
+        if (buf == null) throw new Error(SYS_MESSAGES.FILE_BUF_NOT_FOUND);
+
+        console.log('TelegrafService ~ onText ~ buf:', text, buf);
+        // TODO make watermark service call with buffer and text;
+        await ctx.replyWithPhoto({ source: buf });
+      } else {
+        await ctx.reply(MESSAGES.BAD_REQUEST);
+      }
+    } catch (error) {
+      console.error(error.message);
+      await ctx.reply(MESSAGES.FILE_NOT_FOUND);
+    }
+  }
+
+  @Bind
   async onPhoto(ctx: Context): Promise<void> {
     try {
       if ('photo' in ctx.message) {
         const { photo, from } = ctx.message;
-        const [file] = photo;
+        const file = photo.at(-1);
 
         if (file == null) throw new Error(SYS_MESSAGES.NO_FILE_IN_MESSAGE);
 
         const fileLink = await this.bot.telegram.getFileLink(file.file_id);
-        const buf = await this.getFile(fileLink.href);
+        const arrayBuffer = await this.getFile(fileLink.href);
 
         const ttl = this.configService.get<number>('cache.fileBufTtl');
-        await this.cacheManager.set(String(from.id), buf, ttl);
+        await this.cacheManager.set(
+          String(from.id),
+          Buffer.from(arrayBuffer),
+          ttl,
+        );
 
         await ctx.reply(MESSAGES.ASK_TEXT);
       }
@@ -77,7 +103,7 @@ export class TelegrafService implements OnModuleInit, OnModuleDestroy {
 
   async getFile(url: string): Promise<ArrayBuffer> {
     try {
-      const request = this.httpService.get<ArrayBuffer>(url, {
+      const request = this.httpService.get<Buffer>(url, {
         responseType: 'arraybuffer',
       });
       const { data } = await firstValueFrom(request);
