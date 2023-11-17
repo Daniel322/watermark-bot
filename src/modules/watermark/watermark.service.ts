@@ -31,6 +31,25 @@ export class WatermarkService {
     return imageWithWatermark;
   }
 
+  async setWatermarkOnPhotoForTelegraf(
+    file: Buffer,
+    text: string,
+  ): Promise<Buffer> {
+    const watermarkIconBuffer = this.generateWatermarkSvg({ text });
+
+    const imageWithWatermark = sharp(file)
+      .composite([
+        {
+          input: watermarkIconBuffer,
+          top: 300,
+          left: 300,
+        },
+      ])
+      .toBuffer();
+
+    return imageWithWatermark;
+  }
+
   generateWatermarkSvg({ text, size = 1 }: GenerateWatermarkSvgProps): Buffer {
     const svg = `
       <svg width="${this.defaultSvgWidth * size}" height="${
