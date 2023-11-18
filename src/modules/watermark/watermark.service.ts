@@ -9,12 +9,7 @@ import {
 
 @Injectable()
 export class WatermarkService {
-  public defaultSvgWidth: number;
-  public defaultSvgHeight: number;
-  constructor() {
-    this.defaultSvgHeight = 50;
-    this.defaultSvgWidth = 150;
-  }
+  constructor() {}
 
   async setWatermarkOnPhotoForTelegraf({
     file,
@@ -57,21 +52,21 @@ export class WatermarkService {
     switch (size) {
       case 's': {
         return {
-          width: 150,
+          width: 180,
           height: 50,
           fontSize: 20,
         };
       }
       case 'm': {
         return {
-          width: 300,
+          width: 350,
           height: 100,
           fontSize: 40,
         };
       }
       case 'l': {
         return {
-          width: 500,
+          width: 600,
           height: 150,
           fontSize: 60,
         };
