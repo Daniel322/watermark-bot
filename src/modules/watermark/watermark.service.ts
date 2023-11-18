@@ -1,7 +1,11 @@
 import { Injectable } from '@nestjs/common';
 
 import * as sharp from 'sharp';
-import { GenerateWatermarkSvgProps } from './watermark.types';
+import {
+  GenerateWatermarkSvgProps,
+  SetWatermarkOnPhotoForTelegrafType,
+  Size,
+} from './watermark.types';
 
 @Injectable()
 export class WatermarkService {
@@ -12,37 +16,19 @@ export class WatermarkService {
     this.defaultSvgWidth = 150;
   }
 
-  async setWatermarkOnPhoto(
-    file: Express.Multer.File,
-    text: string,
-  ): Promise<Buffer> {
-    const watermarkIconBuffer = this.generateWatermarkSvg({ text });
-
-    const imageWithWatermark = sharp(file.buffer)
-      .composite([
-        {
-          input: watermarkIconBuffer,
-          top: 300,
-          left: 300,
-        },
-      ])
-      .toBuffer();
-
-    return imageWithWatermark;
-  }
-
-  async setWatermarkOnPhotoForTelegraf(
-    file: Buffer,
-    text: string,
-  ): Promise<Buffer> {
-    const watermarkIconBuffer = this.generateWatermarkSvg({ text });
+  async setWatermarkOnPhotoForTelegraf({
+    file,
+    text,
+    options,
+  }: SetWatermarkOnPhotoForTelegrafType): Promise<Buffer> {
+    const watermarkIconBuffer = this.generateWatermarkSvg({ text, ...options });
 
     const imageWithWatermark = sharp(file)
       .composite([
         {
           input: watermarkIconBuffer,
-          top: 300,
-          left: 300,
+          top: 0,
+          left: 0,
         },
       ])
       .toBuffer();
@@ -50,18 +36,53 @@ export class WatermarkService {
     return imageWithWatermark;
   }
 
-  generateWatermarkSvg({ text, size = 1 }: GenerateWatermarkSvgProps): Buffer {
+  generateWatermarkSvg({
+    text,
+    size = 's',
+  }: GenerateWatermarkSvgProps): Buffer {
+    const { width, height, fontSize } = this.generateSizes(size);
     const svg = `
-      <svg width="${this.defaultSvgWidth * size}" height="${
-        this.defaultSvgHeight * size
-      }">
+      <svg width="${width}" height="${height}">
       <style>
-      .title { fill: #fff; font-size: ${10 * size * 2}px; font-weight: bold }
+      .title { fill: #fff; font-size: ${fontSize}px; font-weight: bold; textAlign: left }
       </style>
-      <text x="50%" y="50%" text-anchor="middle" class="title">${text}</text>
+      <text x="1%" y="30%" text-anchor="start" class="title">${text}</text>
       </svg>
     `;
 
     return Buffer.from(svg);
+  }
+
+  generateSizes(size: Size = 's') {
+    switch (size) {
+      case 's': {
+        return {
+          width: 150,
+          height: 50,
+          fontSize: 20,
+        };
+      }
+      case 'm': {
+        return {
+          width: 300,
+          height: 100,
+          fontSize: 40,
+        };
+      }
+      case 'l': {
+        return {
+          width: 500,
+          height: 150,
+          fontSize: 60,
+        };
+      }
+      default: {
+        return {
+          width: 150,
+          height: 50,
+          fontSize: 20,
+        };
+      }
+    }
   }
 }
