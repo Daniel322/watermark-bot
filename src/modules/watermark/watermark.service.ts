@@ -1,7 +1,11 @@
 import { Injectable } from '@nestjs/common';
 
 import * as sharp from 'sharp';
-import { GenerateWatermarkSvgProps, Size } from './watermark.types';
+import {
+  GenerateWatermarkSvgProps,
+  SetWatermarkOnPhotoForTelegrafType,
+  Size,
+} from './watermark.types';
 
 @Injectable()
 export class WatermarkService {
@@ -12,11 +16,11 @@ export class WatermarkService {
     this.defaultSvgWidth = 150;
   }
 
-  async setWatermarkOnPhotoForTelegraf(
-    file: Buffer,
-    text: string,
-    options: Partial<GenerateWatermarkSvgProps>,
-  ): Promise<Buffer> {
+  async setWatermarkOnPhotoForTelegraf({
+    file,
+    text,
+    options,
+  }: SetWatermarkOnPhotoForTelegrafType): Promise<Buffer> {
     const watermarkIconBuffer = this.generateWatermarkSvg({ text, ...options });
 
     const imageWithWatermark = sharp(file)

@@ -5,3 +5,9 @@ export type GenerateWatermarkSvgProps = {
   style?: Record<string, any>;
 };
 export type Size = 's' | 'm' | 'l';
+
+export type SetWatermarkOnPhotoForTelegrafType = {
+  file: Buffer;
+  text: string;
+  options?: Partial<GenerateWatermarkSvgProps>;
+};

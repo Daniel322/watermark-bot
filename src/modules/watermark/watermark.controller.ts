@@ -27,11 +27,11 @@ export class WatermarkController {
   ) {
     try {
       const imgWithWatermark =
-        await this.watermarkService.setWatermarkOnPhotoForTelegraf(
-          files[0].buffer,
+        await this.watermarkService.setWatermarkOnPhotoForTelegraf({
+          file: files[0].buffer,
           text,
           options,
-        );
+        });
 
       const stream = Readable.from(imgWithWatermark);
 
