@@ -22,14 +22,17 @@ export class WatermarkController {
   @Post()
   async setWatermark(
     @UploadedFiles() files: Express.Multer.File[],
-    @Body() body: WatermarkBodyDto,
+    @Body() { text, ...options }: WatermarkBodyDto,
     @Res() response: Response,
   ) {
     try {
-      const imgWithWatermark = await this.watermarkService.setWatermarkOnPhoto(
-        files[0],
-        body.text,
-      );
+      console.log(files[0]);
+      const imgWithWatermark =
+        await this.watermarkService.setWatermarkOnPhotoForTelegraf(
+          files[0].buffer,
+          text,
+          options,
+        );
 
       const stream = Readable.from(imgWithWatermark);
 
