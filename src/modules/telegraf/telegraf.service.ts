@@ -1,8 +1,10 @@
 import {
   Inject,
   Injectable,
+  Logger,
   OnModuleDestroy,
   OnModuleInit,
+  Optional,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Telegraf, type Context } from 'telegraf';
@@ -16,10 +18,11 @@ import { Bind } from '@common/decorators';
 import { WatermarkService } from '@modules/watermark/watermark.service';
 
 import { MESSAGES, SYS_MESSAGES } from './constants';
+import { TELEGRAF_TOKEN } from './telegraf-provider';
 
 @Injectable()
 export class TelegrafService implements OnModuleInit, OnModuleDestroy {
-  bot: Telegraf;
+  private readonly logger = new Logger(TelegrafService.name);
 
   constructor(
     private readonly configService: ConfigService,
@@ -27,20 +30,23 @@ export class TelegrafService implements OnModuleInit, OnModuleDestroy {
     private readonly watermarkService: WatermarkService,
     @Inject(CACHE_MANAGER)
     private readonly cacheManager: Cache,
+    @Optional()
+    @Inject(TELEGRAF_TOKEN)
+    private readonly bot: Telegraf,
   ) {}
 
   onModuleInit(): void {
-    const token = this.configService.get<string>('telegram.token');
-    if (token) {
-      this.bot = new Telegraf(token);
+    if (this.bot != null) {
       this.setListeners();
       this.bot.launch();
     }
   }
 
   onModuleDestroy() {
-    this.bot.stop('SIGINT');
-    this.bot.stop('SIGTERM');
+    if (this.bot != null) {
+      this.bot.stop('SIGINT');
+      this.bot.stop('SIGTERM');
+    }
   }
 
   setListeners(): void {
@@ -70,7 +76,7 @@ export class TelegrafService implements OnModuleInit, OnModuleDestroy {
         await ctx.reply(MESSAGES.BAD_REQUEST);
       }
     } catch (error) {
-      console.error(error.message);
+      this.logger.error(error.message);
       await ctx.reply(MESSAGES.FILE_NOT_FOUND);
     }
   }
@@ -97,7 +103,7 @@ export class TelegrafService implements OnModuleInit, OnModuleDestroy {
         await ctx.reply(MESSAGES.ASK_TEXT);
       }
     } catch (error) {
-      console.error(error.message);
+      this.logger.error(error.message);
       await ctx.reply(MESSAGES.BAD_REQUEST);
     }
   }
