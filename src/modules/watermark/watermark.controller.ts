@@ -26,7 +26,6 @@ export class WatermarkController {
     @Res() response: Response,
   ) {
     try {
-      console.log(files[0]);
       const imgWithWatermark =
         await this.watermarkService.setWatermarkOnPhotoForTelegraf(
           files[0].buffer,

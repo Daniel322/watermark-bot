@@ -36,7 +36,6 @@ export class WatermarkService {
     text,
     size = 's',
   }: GenerateWatermarkSvgProps): Buffer {
-    console.log(size);
     const { width, height, fontSize } = this.generateSizes(size);
     const svg = `
       <svg width="${width}" height="${height}">
