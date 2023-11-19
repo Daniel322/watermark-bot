@@ -73,6 +73,7 @@ export class TelegrafService implements OnModuleInit, OnModuleDestroy {
           await this.watermarkService.setWatermarkOnPhotoForTelegraf(buf, text);
         await ctx.replyWithPhoto({ source: bufWithWatermark });
       } else {
+        this.logger.error(SYS_MESSAGES.NO_TEXT_IN_MESSAGE);
         await ctx.reply(MESSAGES.BAD_REQUEST);
       }
     } catch (error) {
