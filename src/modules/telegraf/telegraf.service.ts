@@ -70,7 +70,14 @@ export class TelegrafService implements OnModuleInit, OnModuleDestroy {
         if (buf == null) throw new Error(SYS_MESSAGES.FILE_BUF_NOT_FOUND);
 
         const bufWithWatermark =
-          await this.watermarkService.setWatermarkOnPhotoForTelegraf(buf, text);
+          await this.watermarkService.setWatermarkOnPhotoForTelegraf({
+            file: buf,
+            text,
+            options: {
+              // TODO replace to size from settings
+              size: 'l',
+            },
+          });
         await ctx.replyWithPhoto({ source: bufWithWatermark });
       } else {
         this.logger.error(SYS_MESSAGES.NO_TEXT_IN_MESSAGE);
