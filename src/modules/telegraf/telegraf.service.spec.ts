@@ -12,11 +12,7 @@ import { TelegrafService } from './telegraf.service';
 import { TELEGRAF_TOKEN } from './telegraf-provider';
 import { MESSAGES } from './constants';
 
-const TELEGRAM_USER_MOCK = {
-  id: Date.now(),
-};
-
-const TELEGRAF_PROVIDER_MOCK = (() => {
+const makeTelegrafMock = () => {
   const tg = new Telegraf('');
   tg.launch = jest.fn(() => Promise.resolve());
   tg.stop = jest.fn();
@@ -24,7 +20,7 @@ const TELEGRAF_PROVIDER_MOCK = (() => {
   tg.on = jest.fn();
 
   return tg;
-})();
+};
 
 const makeTelegrafMockContext = (update = {}) => {
   const ctx = new Context(
@@ -37,18 +33,24 @@ const makeTelegrafMockContext = (update = {}) => {
   return ctx;
 };
 
-const CACHE_MANAGER_MOCK = {
-  store: new Map(),
-  set: jest.fn((key: string, value: unknown) => {
-    CACHE_MANAGER_MOCK.store.set(key, value);
-  }),
-  get: jest.fn((key: string) => {
-    return CACHE_MANAGER_MOCK.store.get(key);
-  }),
+const makeMockCacheManager = () => {
+  const store = new Map();
+  return {
+    store,
+    set: jest.fn((key: string, value: unknown) => {
+      store.set(key, value);
+    }),
+    get: jest.fn((key: string) => {
+      return store.get(key);
+    }),
+  };
 };
 
 describe('TelegrafService', () => {
   let service: TelegrafService;
+
+  const cacheManager = makeMockCacheManager();
+  const telegraf = makeTelegrafMock();
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -65,11 +67,11 @@ describe('TelegrafService', () => {
         },
         {
           provide: CACHE_MANAGER,
-          useValue: CACHE_MANAGER_MOCK,
+          useValue: cacheManager,
         },
         {
           provide: TELEGRAF_TOKEN,
-          useValue: TELEGRAF_PROVIDER_MOCK,
+          useValue: telegraf,
         },
       ],
     }).compile();
@@ -85,31 +87,31 @@ describe('TelegrafService', () => {
     service.setListeners = jest.fn();
     service.onModuleInit();
     expect(service.setListeners).toHaveBeenCalled();
-    expect(TELEGRAF_PROVIDER_MOCK.launch).toHaveBeenCalled();
+    expect(telegraf.launch).toHaveBeenCalled();
   });
 
   it('onModuleDestroy should call telegraf stop method with right signals', () => {
     service.onModuleDestroy();
-    expect(TELEGRAF_PROVIDER_MOCK.stop).toHaveBeenCalledWith('SIGINT');
-    expect(TELEGRAF_PROVIDER_MOCK.stop).toHaveBeenCalledWith('SIGTERM');
+    expect(telegraf.stop).toHaveBeenCalledWith('SIGINT');
+    expect(telegraf.stop).toHaveBeenCalledWith('SIGTERM');
   });
 
   it('setListeners should set bot listeners', () => {
     service.setListeners();
 
-    expect(TELEGRAF_PROVIDER_MOCK.start).toHaveBeenCalledWith(service.onStart);
+    expect(telegraf.start).toHaveBeenCalledWith(service.onStart);
 
-    expect(TELEGRAF_PROVIDER_MOCK.on).toHaveBeenCalledWith(
+    expect(telegraf.on).toHaveBeenCalledWith(
       expect.any(Function),
       service.onPhoto,
     );
-    expect(TELEGRAF_PROVIDER_MOCK.on).toHaveBeenCalledWith(
+    expect(telegraf.on).toHaveBeenCalledWith(
       expect.any(Function),
       service.onText,
     );
 
-    expect(TELEGRAF_PROVIDER_MOCK.start).toHaveBeenCalledTimes(1);
-    expect(TELEGRAF_PROVIDER_MOCK.on).toHaveBeenCalledTimes(2);
+    expect(telegraf.start).toHaveBeenCalledTimes(1);
+    expect(telegraf.on).toHaveBeenCalledTimes(2);
   });
 
   it('onStart should send welcome message', () => {
@@ -132,8 +134,10 @@ describe('TelegrafService', () => {
     });
 
     it('Should reply with FILE_NOT_FOUND file was not found in cache', async () => {
+      const userId = Date.now();
+
       const ctx = makeTelegrafMockContext({
-        message: { text: 'test', from: TELEGRAM_USER_MOCK },
+        message: { text: 'test', from: { id: userId } },
       });
       await service.onText(ctx);
       expect(ctx.reply).toHaveBeenCalledWith(MESSAGES.FILE_NOT_FOUND);
@@ -143,10 +147,11 @@ describe('TelegrafService', () => {
       const buf = Buffer.alloc(10);
       buf.fill('A');
 
-      CACHE_MANAGER_MOCK.set(String(TELEGRAM_USER_MOCK.id), buf.buffer);
+      const userId = Date.now();
+      cacheManager.set(String(userId), buf.buffer);
 
       const ctx = makeTelegrafMockContext({
-        message: { text: 'test', from: TELEGRAM_USER_MOCK },
+        message: { text: 'test', from: { id: userId } },
       });
 
       await service.onText(ctx);
