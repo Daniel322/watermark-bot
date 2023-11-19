@@ -9,8 +9,8 @@ import { Deunionize } from 'telegraf/typings/deunionize';
 import { WatermarkService } from '@modules/watermark/watermark.service';
 
 import { TelegrafService } from './telegraf.service';
-import { TELEGRAF_TOKEN } from './telegraf-provider';
-import { MESSAGES, SYS_MESSAGES } from './constants';
+import { TELEGRAF_TOKEN } from './telegraf.provider';
+import { MESSAGES, SYS_MESSAGES } from './telegraf.constants';
 import { Observable } from 'rxjs';
 import { AxiosResponse } from 'axios';
 

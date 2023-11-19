@@ -17,8 +17,8 @@ import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Bind } from '@common/decorators';
 import { WatermarkService } from '@modules/watermark/watermark.service';
 
-import { MESSAGES, SYS_MESSAGES } from './constants';
-import { TELEGRAF_TOKEN } from './telegraf-provider';
+import { MESSAGES, SYS_MESSAGES } from './telegraf.constants';
+import { TELEGRAF_TOKEN } from './telegraf.provider';
 
 @Injectable()
 export class TelegrafService implements OnModuleInit, OnModuleDestroy {

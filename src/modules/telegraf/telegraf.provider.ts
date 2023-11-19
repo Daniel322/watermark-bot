@@ -2,7 +2,7 @@ import { ConfigService } from '@nestjs/config';
 import { Telegraf } from 'telegraf';
 import { Logger } from '@nestjs/common';
 
-import { SYS_MESSAGES } from './constants';
+import { SYS_MESSAGES } from './telegraf.constants';
 
 export const TELEGRAF_TOKEN = 'TELEGRAF_TOKEN';
 
