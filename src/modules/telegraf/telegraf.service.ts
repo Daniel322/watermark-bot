@@ -95,13 +95,16 @@ export class TelegrafService implements OnModuleInit, OnModuleDestroy {
         const arrayBuffer = await this.getFile(fileLink.href);
 
         const ttl = this.configService.get<number>('cache.fileBufTtl');
+
         await this.cacheManager.set(
           String(from.id),
-          Buffer.from(arrayBuffer),
+          Buffer.from(arrayBuffer).buffer,
           ttl,
         );
 
         await ctx.reply(MESSAGES.ASK_TEXT);
+      } else {
+        throw new Error(SYS_MESSAGES.NO_PHOTO_IN_MESSAGE);
       }
     } catch (error) {
       this.logger.error(error.message);

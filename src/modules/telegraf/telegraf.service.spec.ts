@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigModule } from '@nestjs/config';
-import { HttpModule } from '@nestjs/axios';
+import { HttpService } from '@nestjs/axios';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Context, Telegraf, Telegram } from 'telegraf';
 import { Update, UserFromGetMe } from 'telegraf/typings/core/types/typegram';
@@ -10,7 +10,9 @@ import { WatermarkService } from '@modules/watermark/watermark.service';
 
 import { TelegrafService } from './telegraf.service';
 import { TELEGRAF_TOKEN } from './telegraf-provider';
-import { MESSAGES } from './constants';
+import { MESSAGES, SYS_MESSAGES } from './constants';
+import { Observable } from 'rxjs';
+import { AxiosResponse } from 'axios';
 
 const makeTelegrafMock = () => {
   const tg = new Telegraf('');
@@ -18,7 +20,9 @@ const makeTelegrafMock = () => {
   tg.stop = jest.fn();
   tg.start = jest.fn();
   tg.on = jest.fn();
-
+  Object.assign(tg.telegram, {
+    getFileLink: () => Promise.resolve('http://localhost'),
+  });
   return tg;
 };
 
@@ -46,17 +50,24 @@ const makeMockCacheManager = () => {
   };
 };
 
+const makeHttpServiceMock = () => new HttpService();
+
 describe('TelegrafService', () => {
   let service: TelegrafService;
 
   const cacheManager = makeMockCacheManager();
   const telegraf = makeTelegrafMock();
+  const httpService = makeHttpServiceMock();
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      imports: [ConfigModule, HttpModule],
+      imports: [ConfigModule],
       providers: [
         TelegrafService,
+        {
+          provide: HttpService,
+          useValue: httpService,
+        },
         {
           provide: WatermarkService,
           useValue: {
@@ -160,6 +171,92 @@ describe('TelegrafService', () => {
           source: buf.buffer,
         }),
       );
+    });
+
+    describe('onPhoto', () => {
+      it('Should reply with BAD_REQUEST message if "photo" is not in message', async () => {
+        const ctx = makeTelegrafMockContext({ message: {} });
+        await service.onPhoto(ctx);
+        expect(ctx.reply).toHaveBeenCalledWith(MESSAGES.BAD_REQUEST);
+      });
+
+      it('Should reply with BAD_REQUEST message if "photo" is empty', async () => {
+        const ctx = makeTelegrafMockContext({ message: { photo: [] } });
+        await service.onPhoto(ctx);
+        expect(ctx.reply).toHaveBeenCalledWith(MESSAGES.BAD_REQUEST);
+      });
+
+      it('Should set file buffer with user id to cache manager', async () => {
+        const ctxData = {
+          message: {
+            photo: [
+              {
+                file_id: String(Date.now()),
+              },
+            ],
+            from: {
+              id: Date.now(),
+            },
+          },
+        };
+        const ctx = makeTelegrafMockContext(ctxData);
+        const buf = Buffer.alloc(10);
+        buf.fill('A');
+
+        service.getFile = () => Promise.resolve(buf.buffer);
+        await service.onPhoto(ctx);
+
+        const cacheVal = cacheManager.get(String(ctxData.message.from.id));
+        expect(cacheVal).toBe(buf.buffer);
+      });
+    });
+
+    it('Should reply with ASK_TEXT', async () => {
+      const ctxData = {
+        message: {
+          photo: [
+            {
+              file_id: String(Date.now()),
+            },
+          ],
+          from: {
+            id: Date.now(),
+          },
+        },
+      };
+      const ctx = makeTelegrafMockContext(ctxData);
+      const buf = Buffer.alloc(10);
+      buf.fill('A');
+
+      service.getFile = () => Promise.resolve(buf.buffer);
+      await service.onPhoto(ctx);
+
+      expect(ctx.reply).toHaveBeenCalledWith(MESSAGES.ASK_TEXT);
+    });
+
+    describe('getFile', () => {
+      it('Should return ArrayBuffer', async () => {
+        const arrayBuffer = new ArrayBuffer(10);
+        httpService.get = () =>
+          new Observable((sub) => {
+            sub.next({ data: arrayBuffer } as AxiosResponse);
+          });
+        const result = await service.getFile('http://localhost');
+        expect(result).toBe(arrayBuffer);
+      });
+
+      it('Should throw FILE_REQUEST_ERROR in case request was failed', async () => {
+        try {
+          httpService.get = () =>
+            new Observable((sub) => {
+              sub.error(SYS_MESSAGES.FILE_REQUEST_ERROR);
+            });
+          await service.getFile('http://localhost');
+          expect(true).toBe(false);
+        } catch (error) {
+          expect(error.message).toBe(SYS_MESSAGES.FILE_REQUEST_ERROR);
+        }
+      });
     });
   });
 });
