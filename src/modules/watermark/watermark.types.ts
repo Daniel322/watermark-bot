@@ -6,6 +6,8 @@ export type GenerateWatermarkSvgProps = {
 };
 export type Size = 's' | 'm' | 'l';
 
+export type WatermarkType = 'single' | 'position';
+
 export type SetWatermarkOnPhotoForTelegrafType = {
   file: Buffer;
   text: string;
