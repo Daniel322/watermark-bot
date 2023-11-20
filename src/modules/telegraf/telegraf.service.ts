@@ -7,7 +7,7 @@ import {
   Optional,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Telegraf, type Context } from 'telegraf';
+import { Telegraf, type Context, Markup } from 'telegraf';
 import { message } from 'telegraf/filters';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
@@ -24,6 +24,10 @@ import { TELEGRAF_TOKEN } from './telegraf.provider';
 export class TelegrafService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(TelegrafService.name);
 
+  settings = {
+    size: 'm',
+  };
+
   constructor(
     private readonly configService: ConfigService,
     private readonly httpService: HttpService,
@@ -38,6 +42,7 @@ export class TelegrafService implements OnModuleInit, OnModuleDestroy {
   onModuleInit(): void {
     if (this.bot != null) {
       this.setListeners();
+      this.setCommands();
       this.bot.launch();
     }
   }
@@ -49,15 +54,36 @@ export class TelegrafService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
+  setCommands(): void {
+    this.bot.telegram.setMyCommands([
+      {
+        command: 'settings',
+        description: 'Settings',
+      },
+    ]);
+  }
+
   setListeners(): void {
     this.bot.start(this.onStart);
+    this.bot.command('settings', this.onSettings);
     this.bot.on(message('photo'), this.onPhoto);
     this.bot.on(message('text'), this.onText);
+    this.bot.action('size', this.onSize);
   }
 
   @Bind
   onStart(ctx: Context): void {
     ctx.reply(MESSAGES.WELCOME);
+  }
+
+  @Bind
+  onSize(ctx: Context): void {
+    if ('data' in ctx.callbackQuery) {
+      console.log(ctx.callbackQuery.data);
+    } else {
+      this.logger.error(SYS_MESSAGES.UNKNOWN_ACTION);
+      ctx.reply(MESSAGES.BAD_REQUEST);
+    }
   }
 
   @Bind
@@ -117,6 +143,14 @@ export class TelegrafService implements OnModuleInit, OnModuleDestroy {
       this.logger.error(error.message);
       await ctx.reply(MESSAGES.BAD_REQUEST);
     }
+  }
+
+  @Bind
+  onSettings(ctx: Context): void {
+    const buttons = Markup.inlineKeyboard([
+      [Markup.button.callback('Размер', 'size')],
+    ]);
+    ctx.replyWithMarkdownV2('test', buttons);
   }
 
   async getFile(url: string): Promise<ArrayBuffer> {

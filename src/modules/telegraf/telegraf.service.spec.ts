@@ -20,8 +20,11 @@ const makeTelegrafMock = () => {
   tg.stop = jest.fn();
   tg.start = jest.fn();
   tg.on = jest.fn();
+  tg.command = jest.fn();
+  tg.action = jest.fn();
   Object.assign(tg.telegram, {
     getFileLink: () => Promise.resolve('http://localhost'),
+    setMyCommands: jest.fn(),
   });
   return tg;
 };
@@ -107,7 +110,18 @@ describe('TelegrafService', () => {
     expect(telegraf.stop).toHaveBeenCalledWith('SIGTERM');
   });
 
-  it('setListeners should set bot listeners', () => {
+  it('Should set bot commands', () => {
+    expect(telegraf.telegram.setMyCommands).toHaveBeenCalledWith(
+      expect.arrayContaining([
+        expect.objectContaining({
+          command: 'settings',
+          description: 'Settings',
+        }),
+      ]),
+    );
+  });
+
+  it('Should set bot listeners', () => {
     service.setListeners();
 
     expect(telegraf.start).toHaveBeenCalledWith(service.onStart);
@@ -120,9 +134,16 @@ describe('TelegrafService', () => {
       expect.any(Function),
       service.onText,
     );
+    expect(telegraf.command).toHaveBeenCalledWith(
+      'settings',
+      service.onSettings,
+    );
+    expect(telegraf.action).toHaveBeenCalledWith('size', service.onSize);
 
     expect(telegraf.start).toHaveBeenCalledTimes(1);
     expect(telegraf.on).toHaveBeenCalledTimes(2);
+    expect(telegraf.command).toHaveBeenCalledTimes(1);
+    expect(telegraf.action).toHaveBeenCalledTimes(1);
   });
 
   it('onStart should send welcome message', () => {
