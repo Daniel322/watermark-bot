@@ -3,6 +3,9 @@ export type GenerateWatermarkSvgProps = {
   size?: Size;
   position?: string; //TODO: change to union
   style?: Record<string, any>;
+  type?: WatermarkType;
+  imageWidth: number;
+  imageHeight: number;
 };
 export type Size = 's' | 'm' | 'l';
 
