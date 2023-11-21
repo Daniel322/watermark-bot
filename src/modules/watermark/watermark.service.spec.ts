@@ -20,18 +20,19 @@ describe('WatermarkService', () => {
 
   describe('generateSizes', () => {
     it('shoud be return a object with properties', () => {
-      expect(service.generateSizes('s')).toEqual({
-        width: 180,
+      const text = 'test';
+      expect(service.generateSizes('s', text.length)).toEqual({
+        width: 10 * text.length,
         height: 50,
         fontSize: 20,
       });
-      expect(service.generateSizes('m')).toEqual({
-        width: 350,
+      expect(service.generateSizes('m', text.length)).toEqual({
+        width: 20 * text.length,
         height: 100,
         fontSize: 40,
       });
-      expect(service.generateSizes('l')).toEqual({
-        width: 600,
+      expect(service.generateSizes('l', text.length)).toEqual({
+        width: 30 * text.length,
         height: 150,
         fontSize: 60,
       });
@@ -40,8 +41,16 @@ describe('WatermarkService', () => {
 
   describe('generateWatermarkSvg', () => {
     it('should be return a buffer', () => {
+      const imageWidth = 1000;
+      const imageHeight = 1000;
       expect(
-        service.generateWatermarkSvg({ text: 'test', size: 's' }),
+        service.generateWatermarkSvg({
+          text: 'test',
+          size: 's',
+          type: 'single',
+          imageHeight,
+          imageWidth,
+        }),
       ).toBeInstanceOf(Buffer);
     });
   });
