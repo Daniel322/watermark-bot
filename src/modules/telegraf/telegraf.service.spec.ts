@@ -280,4 +280,12 @@ describe('TelegrafService', () => {
       });
     });
   });
+
+  describe('onSize', () => {
+    it('Should reply with BAD_REQUEST if data is not in cb query', () => {
+      const ctx = makeTelegrafMockContext({ callback_query: {} });
+      service.onSize(ctx);
+      expect(ctx.reply).toHaveBeenCalledWith(MESSAGES.BAD_REQUEST);
+    });
+  });
 });
