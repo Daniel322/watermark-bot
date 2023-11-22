@@ -10,9 +10,17 @@ import { WatermarkService } from '@modules/watermark/watermark.service';
 
 import { TelegrafService } from './telegraf.service';
 import { TELEGRAF_TOKEN } from './telegraf.provider';
-import { MESSAGES, SYS_MESSAGES } from './telegraf.constants';
+import {
+  ACTIONS,
+  COMMANDS,
+  COMMANDS_LIST,
+  MESSAGES,
+  SIZE_SETTINGS,
+  SYS_MESSAGES,
+} from './telegraf.constants';
 import { Observable } from 'rxjs';
 import { AxiosResponse } from 'axios';
+import { TelegrafUiServuce } from './telegraf.ui.service';
 
 const makeTelegrafMock = () => {
   const tg = new Telegraf('');
@@ -37,6 +45,7 @@ const makeTelegrafMockContext = (update = {}) => {
   );
   ctx.reply = jest.fn();
   ctx.replyWithPhoto = jest.fn();
+  ctx.editMessageText = jest.fn();
   return ctx;
 };
 
@@ -55,12 +64,22 @@ const makeMockCacheManager = () => {
 
 const makeHttpServiceMock = () => new HttpService();
 
+const makeTelefrafUiServiceMock = () => ({
+  // TODO remove when db model will be done
+  userSettings: {
+    size: 's',
+  },
+  sizeInlineKeyboard: ['1', '2'],
+  settingsInlineKeyboard: ['1', '2'],
+});
+
 describe('TelegrafService', () => {
   let service: TelegrafService;
 
   const cacheManager = makeMockCacheManager();
   const telegraf = makeTelegrafMock();
   const httpService = makeHttpServiceMock();
+  const telegrafUiServuce = makeTelefrafUiServiceMock();
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -87,6 +106,10 @@ describe('TelegrafService', () => {
           provide: TELEGRAF_TOKEN,
           useValue: telegraf,
         },
+        {
+          provide: TelegrafUiServuce,
+          useValue: telegrafUiServuce,
+        },
       ],
     }).compile();
 
@@ -99,8 +122,10 @@ describe('TelegrafService', () => {
 
   it('onModuleInit should launch bot', () => {
     service.setListeners = jest.fn();
+    service.setCommands = jest.fn();
     service.onModuleInit();
     expect(service.setListeners).toHaveBeenCalled();
+    expect(service.setCommands).toHaveBeenCalled();
     expect(telegraf.launch).toHaveBeenCalled();
   });
 
@@ -111,13 +136,11 @@ describe('TelegrafService', () => {
   });
 
   it('Should set bot commands', () => {
+    service.setCommands();
     expect(telegraf.telegram.setMyCommands).toHaveBeenCalledWith(
-      expect.arrayContaining([
-        expect.objectContaining({
-          command: 'settings',
-          description: 'Settings',
-        }),
-      ]),
+      expect.arrayContaining(
+        COMMANDS_LIST.map((item) => expect.objectContaining(item)),
+      ),
     );
   });
 
@@ -135,15 +158,23 @@ describe('TelegrafService', () => {
       service.onText,
     );
     expect(telegraf.command).toHaveBeenCalledWith(
-      'settings',
+      ACTIONS.SETTINGS,
       service.onSettings,
     );
-    expect(telegraf.action).toHaveBeenCalledWith('size', service.onSize);
+    expect(telegraf.action).toHaveBeenCalledWith(ACTIONS.SIZE, service.onSize);
+    expect(telegraf.action).toHaveBeenCalledWith(
+      ACTIONS.EXIT_SETTINGS,
+      service.onExitSettings,
+    );
+    expect(telegraf.action).toHaveBeenCalledWith(
+      expect.arrayContaining(SIZE_SETTINGS.map((item) => item.data)),
+      service.onChangeSizeSettings,
+    );
 
     expect(telegraf.start).toHaveBeenCalledTimes(1);
     expect(telegraf.on).toHaveBeenCalledTimes(2);
     expect(telegraf.command).toHaveBeenCalledTimes(1);
-    expect(telegraf.action).toHaveBeenCalledTimes(1);
+    expect(telegraf.action).toHaveBeenCalledTimes(4);
   });
 
   it('onStart should send welcome message', () => {
@@ -286,6 +317,74 @@ describe('TelegrafService', () => {
       const ctx = makeTelegrafMockContext({ callback_query: {} });
       service.onSize(ctx);
       expect(ctx.reply).toHaveBeenCalledWith(MESSAGES.BAD_REQUEST);
+    });
+    it('Should edit message with value given from sizeInlineKeyboard on ui service', () => {
+      const ctx = makeTelegrafMockContext({ callback_query: { data: 'l' } });
+
+      service.onSize(ctx);
+
+      expect(ctx.editMessageText).toHaveBeenCalledWith(
+        MESSAGES.CHANGE_SIZE,
+        telegrafUiServuce.sizeInlineKeyboard,
+      );
+    });
+  });
+
+  describe('onSettings', () => {
+    it('Should edit message to a settings keyboard if "command" is not in ctx', () => {
+      const ctx = makeTelegrafMockContext();
+
+      service.onSettings(ctx);
+
+      expect(ctx.editMessageText).toHaveBeenCalledWith(
+        MESSAGES.CHANGE_SETTINGS,
+        telegrafUiServuce.settingsInlineKeyboard,
+      );
+    });
+
+    it('Should reply with mardown of settings keyboard if "command" is in ctx', () => {
+      const ctx = makeTelegrafMockContext({ command: COMMANDS.SETTINGS });
+      Object.assign(ctx, { command: COMMANDS.SETTINGS });
+
+      ctx.replyWithMarkdownV2 = jest.fn();
+
+      service.onSettings(ctx);
+
+      expect(ctx.replyWithMarkdownV2).toHaveBeenCalledWith(
+        MESSAGES.CHANGE_SETTINGS,
+        telegrafUiServuce.settingsInlineKeyboard,
+      );
+    });
+  });
+
+  describe('onChangeSizeSettings', () => {
+    it('Should reply with BAD_REQUEST if data is not in cb query', () => {
+      const ctx = makeTelegrafMockContext({ callback_query: {} });
+      service.onSize(ctx);
+      expect(ctx.reply).toHaveBeenCalledWith(MESSAGES.BAD_REQUEST);
+    });
+
+    it('Should edit message with sizeInlineKeyboard of ui service', () => {
+      const ctx = makeTelegrafMockContext({
+        callback_query: { data: ACTIONS.SIZE },
+      });
+
+      service.onChangeSizeSettings(ctx);
+
+      expect(ctx.editMessageText).toHaveBeenCalledWith(
+        MESSAGES.CHANGE_SIZE,
+        telegrafUiServuce.sizeInlineKeyboard,
+      );
+    });
+  });
+
+  describe('onExitSettings', () => {
+    it('Should edit message with UPDATE_SETTINGS message', () => {
+      const ctx = makeTelegrafMockContext();
+      service.onExitSettings(ctx);
+      expect(ctx.editMessageText).toHaveBeenCalledWith(
+        MESSAGES.UPDATE_SETTINGS,
+      );
     });
   });
 });
