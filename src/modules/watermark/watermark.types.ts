@@ -40,3 +40,9 @@ export type GenerateSizesT = {
   size?: Size;
   type?: WatermarkType;
 };
+
+export const dictionary: Record<Size, PatternTypes> = {
+  s: { partInRow: 7, partInColumn: 20 },
+  m: { partInRow: 4, partInColumn: 10 },
+  l: { partInRow: 2, partInColumn: 4 },
+};

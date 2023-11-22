@@ -5,10 +5,8 @@ import {
   GenerateSizesT,
   GenerateWatermarkSvgProps,
   GetPatternTextT,
-  PatternTypes,
-  PattertPart,
   SetWatermarkOnPhotoForTelegrafType,
-  Size,
+  dictionary,
 } from './watermark.types';
 
 @Injectable()
@@ -138,32 +136,22 @@ export class WatermarkService {
   }
 
   generatePattern({ size, text, x, y }: GetPatternTextT): string {
-    const patternParts: PattertPart[] = [];
+    const patternParts: string[] = [];
 
-    const dictionary: Record<Size, PatternTypes> = {
-      s: { partInRow: 7, partInColumn: 20 },
-      m: { partInRow: 4, partInColumn: 10 },
-      l: { partInRow: 2, partInColumn: 4 },
-    };
-
-    const partInRow = dictionary[size].partInRow;
-    const partInColumn = dictionary[size].partInColumn;
+    const { partInRow, partInColumn } = dictionary[size];
     let partY = y;
 
     for (let column = 0; column < partInColumn; column++) {
       let partX = x;
-      for (let i = 0; i < partInRow; i++) {
-        patternParts.push({ x: partX, y: partY });
+      for (let row = 0; row < partInRow; row++) {
+        patternParts.push(
+          `<text x="${partX}%" y="${partY}%" text-anchor="start" class="title">${text}</text>`,
+        );
         partX += 100 / partInRow;
       }
       partY += 100 / partInColumn;
     }
 
-    return patternParts
-      .map(
-        ({ x, y }) =>
-          `<text x="${x}%" y="${y}%" text-anchor="start" class="title">${text}</text>`,
-      )
-      .join('');
+    return patternParts.join('');
   }
 }
