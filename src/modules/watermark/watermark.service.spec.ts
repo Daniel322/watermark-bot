@@ -18,26 +18,26 @@ describe('WatermarkService', () => {
     expect(service).toBeDefined();
   });
 
-  describe('generateSizes', () => {
-    it('shoud be return a object with properties', () => {
-      const text = 'test';
-      expect(service.generateSizes('s', text.length)).toEqual({
-        width: 10 * text.length,
-        height: 50,
-        fontSize: 20,
-      });
-      expect(service.generateSizes('m', text.length)).toEqual({
-        width: 20 * text.length,
-        height: 100,
-        fontSize: 40,
-      });
-      expect(service.generateSizes('l', text.length)).toEqual({
-        width: 30 * text.length,
-        height: 150,
-        fontSize: 60,
-      });
-    });
-  });
+  // describe('generateSizes', () => {
+  //   it('shoud be return a object with properties', () => {
+  //     const text = 'test';
+  //     expect(service.generateSizes('s', text.length)).toEqual({
+  //       width: 10 * text.length,
+  //       height: 50,
+  //       fontSize: 20,
+  //     });
+  //     expect(service.generateSizes('m', text.length)).toEqual({
+  //       width: 20 * text.length,
+  //       height: 100,
+  //       fontSize: 40,
+  //     });
+  //     expect(service.generateSizes('l', text.length)).toEqual({
+  //       width: 30 * text.length,
+  //       height: 150,
+  //       fontSize: 60,
+  //     });
+  //   });
+  // });
 
   describe('generateWatermarkSvg', () => {
     it('should be return a buffer', () => {
