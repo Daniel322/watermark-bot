@@ -130,6 +130,7 @@ export class TelegrafService implements OnModuleInit, OnModuleDestroy {
     try {
       if ('photo' in ctx.message) {
         const { photo, from } = ctx.message;
+        // with highest resolution
         const file = photo.at(-1);
 
         if (file == null) throw new Error(SYS_MESSAGES.NO_FILE_IN_MESSAGE);
