@@ -120,67 +120,92 @@ describe('TelegrafService', () => {
     expect(service).toBeDefined();
   });
 
-  it('onModuleInit should launch bot', () => {
-    service.setListeners = jest.fn();
-    service.setCommands = jest.fn();
-    service.onModuleInit();
-    expect(service.setListeners).toHaveBeenCalled();
-    expect(service.setCommands).toHaveBeenCalled();
-    expect(telegraf.launch).toHaveBeenCalled();
+  describe('onModuleInit', () => {
+    it('Should launch bot', () => {
+      service.setCommands = () => {};
+      service.setListeners = () => {};
+      service.onModuleInit();
+      expect(telegraf.launch).toHaveBeenCalled();
+    });
+
+    it('Should call setListeners', () => {
+      service.setListeners = jest.fn();
+      service.setCommands = () => {};
+      service.onModuleInit();
+      expect(service.setListeners).toHaveBeenCalled();
+    });
+
+    it('Should call setCommands', () => {
+      service.setCommands = jest.fn();
+      service.setListeners = () => {};
+      service.onModuleInit();
+      expect(service.setCommands).toHaveBeenCalled();
+    });
   });
 
-  it('onModuleDestroy should call telegraf stop method with right signals', () => {
-    service.onModuleDestroy();
-    expect(telegraf.stop).toHaveBeenCalledWith('SIGINT');
-    expect(telegraf.stop).toHaveBeenCalledWith('SIGTERM');
+  describe('onModuleDestroy', () => {
+    it('Should call telegraf stop method with right signals', () => {
+      service.onModuleDestroy();
+      expect(telegraf.stop).toHaveBeenCalledWith('SIGINT');
+      expect(telegraf.stop).toHaveBeenCalledWith('SIGTERM');
+    });
   });
 
-  it('Should set bot commands', () => {
-    service.setCommands();
-    expect(telegraf.telegram.setMyCommands).toHaveBeenCalledWith(
-      expect.arrayContaining(
-        COMMANDS_LIST.map((item) => expect.objectContaining(item)),
-      ),
-    );
+  describe('setCommands', () => {
+    it('Should set bot commands', () => {
+      service.setCommands();
+      expect(telegraf.telegram.setMyCommands).toHaveBeenCalledWith(
+        expect.arrayContaining(
+          COMMANDS_LIST.map((item) => expect.objectContaining(item)),
+        ),
+      );
+    });
   });
 
-  it('Should set bot listeners', () => {
-    service.setListeners();
+  describe('setListeners', () => {
+    it('Should set bot listeners', () => {
+      service.setListeners();
 
-    expect(telegraf.start).toHaveBeenCalledWith(service.onStart);
+      expect(telegraf.start).toHaveBeenCalledWith(service.onStart);
 
-    expect(telegraf.on).toHaveBeenCalledWith(
-      expect.any(Function),
-      service.onPhoto,
-    );
-    expect(telegraf.on).toHaveBeenCalledWith(
-      expect.any(Function),
-      service.onText,
-    );
-    expect(telegraf.command).toHaveBeenCalledWith(
-      ACTIONS.SETTINGS,
-      service.onSettings,
-    );
-    expect(telegraf.action).toHaveBeenCalledWith(ACTIONS.SIZE, service.onSize);
-    expect(telegraf.action).toHaveBeenCalledWith(
-      ACTIONS.EXIT_SETTINGS,
-      service.onExitSettings,
-    );
-    expect(telegraf.action).toHaveBeenCalledWith(
-      expect.arrayContaining(SIZE_SETTINGS.map((item) => item.data)),
-      service.onChangeSizeSettings,
-    );
+      expect(telegraf.on).toHaveBeenCalledWith(
+        expect.any(Function),
+        service.onPhoto,
+      );
+      expect(telegraf.on).toHaveBeenCalledWith(
+        expect.any(Function),
+        service.onText,
+      );
+      expect(telegraf.command).toHaveBeenCalledWith(
+        ACTIONS.SETTINGS,
+        service.onSettings,
+      );
+      expect(telegraf.action).toHaveBeenCalledWith(
+        ACTIONS.SIZE,
+        service.onSize,
+      );
+      expect(telegraf.action).toHaveBeenCalledWith(
+        ACTIONS.EXIT_SETTINGS,
+        service.onExitSettings,
+      );
+      expect(telegraf.action).toHaveBeenCalledWith(
+        expect.arrayContaining(SIZE_SETTINGS.map((item) => item.data)),
+        service.onChangeSizeSettings,
+      );
 
-    expect(telegraf.start).toHaveBeenCalledTimes(1);
-    expect(telegraf.on).toHaveBeenCalledTimes(2);
-    expect(telegraf.command).toHaveBeenCalledTimes(1);
-    expect(telegraf.action).toHaveBeenCalledTimes(4);
+      expect(telegraf.start).toHaveBeenCalledTimes(1);
+      expect(telegraf.on).toHaveBeenCalledTimes(2);
+      expect(telegraf.command).toHaveBeenCalledTimes(1);
+      expect(telegraf.action).toHaveBeenCalledTimes(4);
+    });
   });
 
-  it('onStart should send welcome message', () => {
-    const ctx = makeTelegrafMockContext();
-    service.onStart(ctx);
-    expect(ctx.reply).toHaveBeenCalledWith(MESSAGES.WELCOME);
+  describe('onStart', () => {
+    it('Should send welcome message', () => {
+      const ctx = makeTelegrafMockContext();
+      service.onStart(ctx);
+      expect(ctx.reply).toHaveBeenCalledWith(MESSAGES.WELCOME);
+    });
   });
 
   describe('onText', () => {
