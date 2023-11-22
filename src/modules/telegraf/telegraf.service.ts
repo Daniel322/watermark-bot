@@ -17,8 +17,17 @@ import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Bind } from '@common/decorators';
 import { WatermarkService } from '@modules/watermark/watermark.service';
 
-import { MESSAGES, SYS_MESSAGES } from './telegraf.constants';
+import {
+  ACTIONS,
+  COMMANDS,
+  COMMANDS_LIST,
+  EVENTS,
+  MESSAGES,
+  SIZE_SETTINGS,
+  SYS_MESSAGES,
+} from './telegraf.constants';
 import { TELEGRAF_TOKEN } from './telegraf.provider';
+import { TelegrafUiServuce } from './telegraf.ui.service';
 
 @Injectable()
 export class TelegrafService implements OnModuleInit, OnModuleDestroy {
@@ -28,6 +37,7 @@ export class TelegrafService implements OnModuleInit, OnModuleDestroy {
     private readonly configService: ConfigService,
     private readonly httpService: HttpService,
     private readonly watermarkService: WatermarkService,
+    private readonly uiService: TelegrafUiServuce,
     @Inject(CACHE_MANAGER)
     private readonly cacheManager: Cache,
     @Optional()
@@ -38,6 +48,7 @@ export class TelegrafService implements OnModuleInit, OnModuleDestroy {
   onModuleInit(): void {
     if (this.bot != null) {
       this.setListeners();
+      this.setCommands();
       this.bot.launch();
     }
   }
@@ -49,15 +60,40 @@ export class TelegrafService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
+  setCommands(): void {
+    this.bot.telegram.setMyCommands(COMMANDS_LIST);
+  }
+
   setListeners(): void {
     this.bot.start(this.onStart);
-    this.bot.on(message('photo'), this.onPhoto);
-    this.bot.on(message('text'), this.onText);
+    this.bot.command(COMMANDS.SETTINGS, this.onSettings);
+    this.bot.on(message(EVENTS.MESSAGES.PHOTO), this.onPhoto);
+    this.bot.on(message(EVENTS.MESSAGES.TEXT), this.onText);
+    this.bot.action(ACTIONS.SIZE, this.onSize);
+    this.bot.action(ACTIONS.SETTINGS, this.onSettings);
+    this.bot.action(ACTIONS.EXIT_SETTINGS, this.onExitSettings);
+    this.bot.action(
+      SIZE_SETTINGS.map((item) => item.data),
+      this.onChangeSizeSettings,
+    );
   }
 
   @Bind
   onStart(ctx: Context): void {
     ctx.reply(MESSAGES.WELCOME);
+  }
+
+  @Bind
+  async onSize(ctx: Context): Promise<void> {
+    if ('data' in ctx.callbackQuery) {
+      ctx.editMessageText(
+        MESSAGES.CHANGE_SIZE,
+        this.uiService.sizeInlineKeyboard,
+      );
+    } else {
+      this.logger.error(SYS_MESSAGES.UNKNOWN_ACTION);
+      ctx.reply(MESSAGES.BAD_REQUEST);
+    }
   }
 
   @Bind
@@ -94,6 +130,7 @@ export class TelegrafService implements OnModuleInit, OnModuleDestroy {
     try {
       if ('photo' in ctx.message) {
         const { photo, from } = ctx.message;
+        // with highest resolution
         const file = photo.at(-1);
 
         if (file == null) throw new Error(SYS_MESSAGES.NO_FILE_IN_MESSAGE);
@@ -117,6 +154,40 @@ export class TelegrafService implements OnModuleInit, OnModuleDestroy {
       this.logger.error(error.message);
       await ctx.reply(MESSAGES.BAD_REQUEST);
     }
+  }
+
+  @Bind
+  onSettings(ctx: Context): void {
+    if ('command' in ctx) {
+      ctx.replyWithMarkdownV2(
+        MESSAGES.CHANGE_SETTINGS,
+        this.uiService.settingsInlineKeyboard,
+      );
+    } else {
+      ctx.editMessageText(
+        MESSAGES.CHANGE_SETTINGS,
+        this.uiService.settingsInlineKeyboard,
+      );
+    }
+  }
+
+  @Bind
+  onChangeSizeSettings(ctx: Context): void {
+    if ('data' in ctx.callbackQuery) {
+      this.uiService.userSettings.size = ctx.callbackQuery.data;
+      ctx.editMessageText(
+        MESSAGES.CHANGE_SIZE,
+        this.uiService.sizeInlineKeyboard,
+      );
+    } else {
+      this.logger.error(SYS_MESSAGES.NO_DATA_ON_CHANGE_SIZE);
+      ctx.reply(MESSAGES.BAD_REQUEST);
+    }
+  }
+
+  @Bind
+  onExitSettings(ctx: Context): void {
+    ctx.editMessageText(MESSAGES.UPDATE_SETTINGS);
   }
 
   async getFile(url: string): Promise<ArrayBuffer> {

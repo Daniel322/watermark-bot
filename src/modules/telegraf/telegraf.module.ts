@@ -7,9 +7,10 @@ import { WatermarkModule } from '@modules/watermark/watermark.module';
 
 import { TelegrafService } from './telegraf.service';
 import { telegrafProvider } from './telegraf.provider';
+import { TelegrafUiServuce } from './telegraf.ui.service';
 
 @Module({
   imports: [ConfigModule, HttpModule, CacheModule.register(), WatermarkModule],
-  providers: [TelegrafService, telegrafProvider],
+  providers: [TelegrafService, telegrafProvider, TelegrafUiServuce],
 })
 export class TelegrafModule {}
