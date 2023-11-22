@@ -20,28 +20,47 @@ describe('WatermarkService', () => {
 
   describe('generateSizes', () => {
     it('shoud be return a object with properties', () => {
-      expect(service.generateSizes('s')).toEqual({
-        width: 180,
-        height: 50,
-        fontSize: 20,
+      const text = 'test';
+      const imageWidth = 1000;
+      const dynamicSize = Math.floor((imageWidth * 0.5) / text.length);
+      expect(
+        service.generateSizes({
+          textLength: text.length,
+          imageWidth,
+        }),
+      ).toEqual({
+        x: 1,
+        y: 5,
+        fontSize: dynamicSize > 40 ? 40 : dynamicSize,
+        weightCoefficient: 0.3,
       });
-      expect(service.generateSizes('m')).toEqual({
-        width: 350,
-        height: 100,
-        fontSize: 40,
-      });
-      expect(service.generateSizes('l')).toEqual({
-        width: 600,
-        height: 150,
-        fontSize: 60,
+      expect(
+        service.generateSizes({
+          textLength: text.length,
+          imageWidth,
+          type: 'pattern',
+        }),
+      ).toEqual({
+        x: 0.5,
+        y: 4,
+        fontSize: dynamicSize > 40 ? 40 : dynamicSize,
+        weightCoefficient: 0.3,
       });
     });
   });
 
   describe('generateWatermarkSvg', () => {
     it('should be return a buffer', () => {
+      const imageWidth = 1000;
+      const imageHeight = 1000;
       expect(
-        service.generateWatermarkSvg({ text: 'test', size: 's' }),
+        service.generateWatermarkSvg({
+          text: 'test',
+          size: 's',
+          type: 'single',
+          imageHeight,
+          imageWidth,
+        }),
       ).toBeInstanceOf(Buffer);
     });
   });
