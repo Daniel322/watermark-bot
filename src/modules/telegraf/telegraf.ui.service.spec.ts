@@ -53,7 +53,6 @@ describe('TelegrafUiServuce', () => {
           ]),
         ]),
       );
-      console.log(inline_keyboard);
     });
   });
 
@@ -87,7 +86,6 @@ describe('TelegrafUiServuce', () => {
           ]),
         ]),
       );
-      console.log(inline_keyboard);
     });
   });
 
