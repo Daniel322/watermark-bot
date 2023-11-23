@@ -6,6 +6,7 @@ import {
   GenerateWatermarkSvgProps,
   GetPatternTextT,
   SetWatermarkOnPhotoForTelegrafType,
+  colors,
   dictionary,
 } from './watermark.types';
 
@@ -47,6 +48,7 @@ export class WatermarkService {
     imageWidth,
     imageHeight,
     opacity = 1,
+    color = 'white',
   }: GenerateWatermarkSvgProps): Buffer {
     if (type === 'single') {
       const { fontSize, x, y } = this.generateSizes({
@@ -59,7 +61,7 @@ export class WatermarkService {
       const svg = `
         <svg width="${imageWidth}" height="${imageHeight}">
         <style>
-        .title { fill: rgba(255, 255, 255, ${opacity}); font-size: ${fontSize}px; font-weight: bold; textAlign: left }
+        .title { fill: rgba(${colors[color]}, ${opacity}); font-size: ${fontSize}px; font-weight: bold; textAlign: left }
         </style>
         <text x="${x}%" y="${y}%" text-anchor="start" class="title">${text}</text>
         </svg>
@@ -81,7 +83,7 @@ export class WatermarkService {
       const svg = `
       <svg width="${imageWidth}" height="${imageHeight}">
       <style>
-      .title { fill: rgba(255, 255, 255, ${opacity}); font-size: ${fontSize}px; font-weight: bold; textAlign: left; text-decoration: underline }
+      .title { fill: rgba(${colors[color]}, ${opacity}); font-size: ${fontSize}px; font-weight: bold; textAlign: left; text-decoration: underline }
       </style>
       ${patternText}
       </svg>
