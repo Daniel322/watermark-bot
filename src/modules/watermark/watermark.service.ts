@@ -2,10 +2,10 @@ import { Injectable } from '@nestjs/common';
 
 import * as sharp from 'sharp';
 import {
-  GenerateSizesT,
-  GenerateWatermarkSvgProps,
-  GetPatternTextT,
-  SetTextWatermarkType,
+  GetFontSizeProps,
+  GenerateTextWatermarkProps,
+  GeneratePatternProps,
+  SetTextWatermarkProps,
   WatermarkType,
   colors,
   dictionary,
@@ -19,10 +19,10 @@ export class WatermarkService {
     file,
     text,
     options: { type = 'single', ...options },
-  }: SetTextWatermarkType): Promise<Buffer> {
+  }: SetTextWatermarkProps): Promise<Buffer> {
     const { width, height }: sharp.Metadata = await sharp(file).metadata();
 
-    const generateOptions: GenerateWatermarkSvgProps = {
+    const generateOptions: GenerateTextWatermarkProps = {
       text,
       imageHeight: height,
       imageWidth: width,
@@ -55,7 +55,7 @@ export class WatermarkService {
     size = 's',
     opacity = 1,
     color = 'white',
-  }: GenerateWatermarkSvgProps): Buffer {
+  }: GenerateTextWatermarkProps): Buffer {
     const fontSize = this.getFontSize({
       size,
       textLength: text.length,
@@ -88,7 +88,7 @@ export class WatermarkService {
     imageHeight,
     opacity = 1,
     color = 'white',
-  }: GenerateWatermarkSvgProps): Buffer {
+  }: GenerateTextWatermarkProps): Buffer {
     const { weightCoefficient, x, y } = dictionary[size];
 
     const fontSize = (imageWidth * weightCoefficient) / text.length;
@@ -112,7 +112,7 @@ export class WatermarkService {
     return Buffer.from(svg);
   }
 
-  generatePattern({ size, text, x, y }: GetPatternTextT): string {
+  generatePattern({ size, text, x, y }: GeneratePatternProps): string {
     const patternParts: string[] = [];
 
     const { partInRow, partInColumn } = dictionary[size];
@@ -132,7 +132,7 @@ export class WatermarkService {
     return patternParts.join('');
   }
 
-  getFontSize({ size = 's', textLength, imageWidth }: GenerateSizesT) {
+  getFontSize({ size = 's', textLength, imageWidth }: GetFontSizeProps) {
     const { defaultFontSize, weightCoefficient } = dictionary[size];
 
     const dynamicSize = Math.floor(

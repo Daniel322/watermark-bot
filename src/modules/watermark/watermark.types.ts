@@ -1,4 +1,10 @@
-export type GenerateWatermarkSvgProps = {
+export type Size = 's' | 'm' | 'l';
+
+export type Color = 'white' | 'black';
+
+export type WatermarkType = 'single' | 'pattern';
+
+export type GenerateTextWatermarkProps = {
   text: string;
   size?: Size;
   position?: string; //TODO: change to union
@@ -8,31 +14,27 @@ export type GenerateWatermarkSvgProps = {
   opacity?: number;
   color?: Color;
 };
-export type Size = 's' | 'm' | 'l';
 
-export type Color = 'white' | 'black';
-
-export type WatermarkType = 'single' | 'pattern';
-
-export type SetTextWatermarkType = {
+export type SetTextWatermarkProps = {
   file: Buffer;
   text: string;
-  options?: Partial<GenerateWatermarkSvgProps>;
+  options?: Partial<GenerateTextWatermarkProps>;
 };
 
-export type GetPatternTextT = {
+export type GeneratePatternProps = {
   size: Size;
   text: string;
   y: number;
   x: number;
 };
 
-export type PattertPart = {
-  x: number;
-  y: number;
+export type GetFontSizeProps = {
+  textLength: number;
+  imageWidth: number;
+  size?: Size;
 };
 
-export type PatternTypes = {
+export type SizeData = {
   partInRow: number;
   partInColumn: number;
   weightCoefficient: number;
@@ -41,13 +43,7 @@ export type PatternTypes = {
   defaultFontSize: number;
 };
 
-export type GenerateSizesT = {
-  textLength: number;
-  imageWidth: number;
-  size?: Size;
-};
-
-export const dictionary: Record<Size, PatternTypes> = {
+export const dictionary: Record<Size, SizeData> = {
   s: {
     partInRow: 7,
     partInColumn: 20,
