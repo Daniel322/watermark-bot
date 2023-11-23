@@ -27,7 +27,7 @@ export class WatermarkController {
   ) {
     try {
       const imgWithWatermark =
-        await this.watermarkService.setWatermarkOnPhotoForTelegraf({
+        await this.watermarkService.createImageWithTextWatermark({
           file: files[0].buffer,
           text,
           options,

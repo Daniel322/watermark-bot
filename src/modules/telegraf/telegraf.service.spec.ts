@@ -93,7 +93,7 @@ describe('TelegrafService', () => {
         {
           provide: WatermarkService,
           useValue: {
-            setWatermarkOnPhotoForTelegraf({ file }): Buffer {
+            createImageWithTextWatermark({ file }): Buffer {
               return file;
             },
           },

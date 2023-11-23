@@ -2,140 +2,128 @@ import { Injectable } from '@nestjs/common';
 
 import * as sharp from 'sharp';
 import {
-  GenerateSizesT,
-  GenerateWatermarkSvgProps,
-  GetPatternTextT,
-  SetWatermarkOnPhotoForTelegrafType,
+  GetFontSizeProps,
+  GenerateTextWatermarkProps,
+  GeneratePatternProps,
+  SetTextWatermarkProps,
+  WatermarkType,
+  colors,
   dictionary,
+  WATERMARK_TYPES,
+  COLORS_TYPES,
+  SIZES,
 } from './watermark.types';
 
 @Injectable()
 export class WatermarkService {
   constructor() {}
 
-  async setWatermarkOnPhotoForTelegraf({
+  async createImageWithTextWatermark({
     file,
     text,
-    options,
-  }: SetWatermarkOnPhotoForTelegrafType): Promise<Buffer> {
+    options: { type = WATERMARK_TYPES.single, ...options } = {
+      type: WATERMARK_TYPES.single,
+    },
+  }: SetTextWatermarkProps): Promise<Buffer> {
     const { width, height }: sharp.Metadata = await sharp(file).metadata();
 
-    const watermarkIconBuffer = this.generateWatermarkSvg({
+    const generateOptions: GenerateTextWatermarkProps = {
       text,
-      ...options,
       imageHeight: height,
       imageWidth: width,
-    });
+      ...options,
+    };
 
-    const imageWithWatermark = sharp(file)
-      .composite([
-        {
-          input: watermarkIconBuffer,
-          top: 0,
-          left: 0,
-        },
-      ])
-      .toBuffer();
+    const textWatermarkBuffer =
+      type === WATERMARK_TYPES.single
+        ? this.generateSingleWatermarkSvg(generateOptions)
+        : this.generatePatternWatermarkSvg(generateOptions);
+
+    const imageWithWatermark = await this.compositeImageAndWatermark(
+      file,
+      textWatermarkBuffer,
+    );
 
     return imageWithWatermark;
   }
 
-  generateWatermarkSvg({
+  compositeImageAndWatermark(
+    image: Buffer,
+    watermark: Buffer,
+  ): Promise<Buffer> {
+    return sharp(image)
+      .composite([{ input: watermark, top: 0, left: 0 }])
+      .toBuffer();
+  }
+
+  generateSingleWatermarkSvg({
     text,
-    size = 's',
-    type = 'single',
     imageWidth,
     imageHeight,
-  }: GenerateWatermarkSvgProps): Buffer {
-    if (type === 'single') {
-      const { fontSize, x, y } = this.generateSizes({
-        size,
-        textLength: text.length,
-        imageWidth,
-        type,
-      });
+    size = SIZES.s,
+    opacity = 1,
+    color = COLORS_TYPES.white,
+  }: GenerateTextWatermarkProps): Buffer {
+    const fontSize = this.getFontSize({
+      size,
+      textLength: text.length,
+      imageWidth,
+    });
 
-      const svg = `
-        <svg width="${imageWidth}" height="${imageHeight}">
-        <style>
-        .title { fill: #fff; font-size: ${fontSize}px; font-weight: bold; textAlign: left }
-        </style>
-        <text x="${x}%" y="${y}%" text-anchor="start" class="title">${text}</text>
-        </svg>
-      `;
+    const { x, y } = dictionary[size];
 
-      return Buffer.from(svg);
-    } else {
-      const { weightCoefficient, x, y } = this.generateSizes({
-        size,
-        textLength: text.length,
-        imageWidth,
-        type,
-      });
-
-      const fontSize = (imageWidth * weightCoefficient) / text.length;
-
-      const patternText = this.generatePattern({ size, text, x, y });
-
-      const svg = `
+    const svg = `
       <svg width="${imageWidth}" height="${imageHeight}">
       <style>
-      .title { fill: #fff; font-size: ${fontSize}px; font-weight: bold; textAlign: left; text-decoration: underline }
+      .title { fill: rgba(${
+        colors[color]
+      }, ${opacity}); font-size: ${fontSize}px; font-weight: bold; textAlign: left }
       </style>
-      ${patternText}
+      <text x="${this.getCoordUtil(
+        x,
+        WATERMARK_TYPES.single,
+      )}%" y="${this.getCoordUtil(
+        y,
+        WATERMARK_TYPES.single,
+      )}%" text-anchor="start" class="title">${text}</text>
       </svg>
     `;
 
-      return Buffer.from(svg);
-    }
+    return Buffer.from(svg);
   }
 
-  generateSizes({
-    size = 's',
-    type = 'single',
-    textLength,
+  generatePatternWatermarkSvg({
+    text,
+    size = SIZES.s,
     imageWidth,
-  }: GenerateSizesT) {
-    switch (size) {
-      case 's': {
-        const dynamicSize = Math.floor((imageWidth * 0.3) / textLength);
-        return {
-          fontSize: dynamicSize > 40 ? 40 : dynamicSize,
-          x: type === 'single' ? 1 : 0.5,
-          y: type === 'single' ? 5 : 4,
-          weightCoefficient: 0.3,
-        };
-      }
-      case 'm': {
-        const dynamicSize = Math.floor((imageWidth * 0.5) / textLength);
-        return {
-          fontSize: dynamicSize > 60 ? 60 : dynamicSize,
-          x: 1,
-          y: 7,
-          weightCoefficient: 0.5,
-        };
-      }
-      case 'l': {
-        const dynamicSize = Math.floor((imageWidth * 0.8) / textLength);
-        return {
-          fontSize: dynamicSize > 80 ? 80 : dynamicSize,
-          x: type === 'single' ? 1 : 5,
-          y: 10,
-          weightCoefficient: 0.8,
-        };
-      }
-      default: {
-        return {
-          fontSize: 20,
-          x: 1,
-          y: 5,
-          weightCoefficient: 0.3,
-        };
-      }
-    }
+    imageHeight,
+    opacity = 1,
+    color = COLORS_TYPES.white,
+  }: GenerateTextWatermarkProps): Buffer {
+    const { weightCoefficient, x, y } = dictionary[size];
+
+    const fontSize = (imageWidth * weightCoefficient) / text.length;
+
+    const patternText = this.generatePattern({
+      size,
+      text,
+      x: this.getCoordUtil(x, WATERMARK_TYPES.pattern),
+      y: this.getCoordUtil(y, WATERMARK_TYPES.pattern),
+    });
+
+    const svg = `
+    <svg width="${imageWidth}" height="${imageHeight}">
+    <style>
+    .title { fill: rgba(${colors[color]}, ${opacity}); font-size: ${fontSize}px; font-weight: bold; textAlign: left; text-decoration: underline }
+    </style>
+    ${patternText}
+    </svg>
+  `;
+
+    return Buffer.from(svg);
   }
 
-  generatePattern({ size, text, x, y }: GetPatternTextT): string {
+  generatePattern({ size, text, x, y }: GeneratePatternProps): string {
     const patternParts: string[] = [];
 
     const { partInRow, partInColumn } = dictionary[size];
@@ -153,5 +141,22 @@ export class WatermarkService {
     }
 
     return patternParts.join('');
+  }
+
+  getFontSize({ size = SIZES.s, textLength, imageWidth }: GetFontSizeProps) {
+    const { defaultFontSize, weightCoefficient } = dictionary[size];
+
+    const dynamicSize = Math.floor(
+      (imageWidth * weightCoefficient) / textLength,
+    );
+
+    return dynamicSize > defaultFontSize ? defaultFontSize : dynamicSize;
+  }
+
+  getCoordUtil(
+    value: Record<WatermarkType, number> | number,
+    type: WatermarkType,
+  ) {
+    return typeof value === 'number' ? value : value[type];
   }
 }

@@ -106,7 +106,7 @@ export class TelegrafService implements OnModuleInit, OnModuleDestroy {
         if (buf == null) throw new Error(SYS_MESSAGES.FILE_BUF_NOT_FOUND);
 
         const bufWithWatermark =
-          await this.watermarkService.setWatermarkOnPhotoForTelegraf({
+          await this.watermarkService.createImageWithTextWatermark({
             file: buf,
             text,
             options: {
