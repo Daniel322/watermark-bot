@@ -2,17 +2,17 @@ export const SIZES = {
   s: 's',
   m: 'm',
   l: 'l',
-};
+} as const;
 
 export const WATERMARK_TYPES = {
   single: 'single',
   pattern: 'pattern',
-};
+} as const;
 
 export const COLORS_TYPES = {
   white: 'white',
   black: 'black',
-};
+} as const;
 
 export type Size = keyof typeof SIZES;
 
