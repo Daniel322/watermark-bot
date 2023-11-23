@@ -1,8 +1,24 @@
-export type Size = 's' | 'm' | 'l';
+export const sizes = {
+  s: 's',
+  m: 'm',
+  l: 'l',
+};
 
-export type Color = 'white' | 'black';
+export const types = {
+  single: 'single',
+  pattern: 'pattern',
+};
 
-export type WatermarkType = 'single' | 'pattern';
+export const colorsDict = {
+  white: 'white',
+  black: 'black',
+};
+
+export type Size = keyof typeof sizes;
+
+export type Color = keyof typeof colorsDict;
+
+export type WatermarkType = keyof typeof types;
 
 export type GenerateTextWatermarkProps = {
   text: string;
