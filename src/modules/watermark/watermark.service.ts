@@ -15,10 +15,10 @@ import {
 export class WatermarkService {
   constructor() {}
 
-  async setTextWatermark({
+  async createImageWithTextWatermark({
     file,
     text,
-    options: { type = 'single', ...options },
+    options: { type = 'single', ...options } = { type: 'single' },
   }: SetTextWatermarkProps): Promise<Buffer> {
     const { width, height }: sharp.Metadata = await sharp(file).metadata();
 
@@ -29,20 +29,23 @@ export class WatermarkService {
       ...options,
     };
 
-    const watermarkIconBuffer =
+    const textWatermarkBuffer =
       type === 'single'
         ? this.generateSingleWatermarkSvg(generateOptions)
         : this.generatePatternWatermarkSvg(generateOptions);
 
-    const imageWithWatermark = await this.setWatermarkToPhoto(
+    const imageWithWatermark = await this.compositeImageAndWatermark(
       file,
-      watermarkIconBuffer,
+      textWatermarkBuffer,
     );
 
     return imageWithWatermark;
   }
 
-  async setWatermarkToPhoto(image: Buffer, watermark: Buffer): Promise<Buffer> {
+  async compositeImageAndWatermark(
+    image: Buffer,
+    watermark: Buffer,
+  ): Promise<Buffer> {
     return sharp(image)
       .composite([{ input: watermark, top: 0, left: 0 }])
       .toBuffer();

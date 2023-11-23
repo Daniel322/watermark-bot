@@ -105,14 +105,15 @@ export class TelegrafService implements OnModuleInit, OnModuleDestroy {
         const buf = await this.cacheManager.get<Buffer>(String(from.id));
         if (buf == null) throw new Error(SYS_MESSAGES.FILE_BUF_NOT_FOUND);
 
-        const bufWithWatermark = await this.watermarkService.setTextWatermark({
-          file: buf,
-          text,
-          options: {
-            // TODO replace to size from settings
-            size: 'l',
-          },
-        });
+        const bufWithWatermark =
+          await this.watermarkService.createImageWithTextWatermark({
+            file: buf,
+            text,
+            options: {
+              // TODO replace to size from settings
+              size: 'l',
+            },
+          });
         await ctx.replyWithPhoto({ source: bufWithWatermark });
       } else {
         this.logger.error(SYS_MESSAGES.NO_TEXT_IN_MESSAGE);

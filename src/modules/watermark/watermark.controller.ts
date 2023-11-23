@@ -26,11 +26,12 @@ export class WatermarkController {
     @Res() response: Response,
   ) {
     try {
-      const imgWithWatermark = await this.watermarkService.setTextWatermark({
-        file: files[0].buffer,
-        text,
-        options,
-      });
+      const imgWithWatermark =
+        await this.watermarkService.createImageWithTextWatermark({
+          file: files[0].buffer,
+          text,
+          options,
+        });
 
       const stream = Readable.from(imgWithWatermark);
 
