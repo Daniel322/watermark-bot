@@ -46,6 +46,7 @@ export class WatermarkService {
     type = 'single',
     imageWidth,
     imageHeight,
+    opacity = 1,
   }: GenerateWatermarkSvgProps): Buffer {
     if (type === 'single') {
       const { fontSize, x, y } = this.generateSizes({
@@ -58,7 +59,7 @@ export class WatermarkService {
       const svg = `
         <svg width="${imageWidth}" height="${imageHeight}">
         <style>
-        .title { fill: #fff; font-size: ${fontSize}px; font-weight: bold; textAlign: left }
+        .title { fill: rgba(255, 255, 255, ${opacity}); font-size: ${fontSize}px; font-weight: bold; textAlign: left }
         </style>
         <text x="${x}%" y="${y}%" text-anchor="start" class="title">${text}</text>
         </svg>
@@ -80,7 +81,7 @@ export class WatermarkService {
       const svg = `
       <svg width="${imageWidth}" height="${imageHeight}">
       <style>
-      .title { fill: #fff; font-size: ${fontSize}px; font-weight: bold; textAlign: left; text-decoration: underline }
+      .title { fill: rgba(255, 255, 255, ${opacity}); font-size: ${fontSize}px; font-weight: bold; textAlign: left; text-decoration: underline }
       </style>
       ${patternText}
       </svg>
@@ -96,9 +97,11 @@ export class WatermarkService {
     textLength,
     imageWidth,
   }: GenerateSizesT) {
+    const dynamicSize = Math.floor(
+      (imageWidth * dictionary[size].weightCoefficient) / textLength,
+    );
     switch (size) {
       case 's': {
-        const dynamicSize = Math.floor((imageWidth * 0.3) / textLength);
         return {
           fontSize: dynamicSize > 40 ? 40 : dynamicSize,
           x: type === 'single' ? 1 : 0.5,
@@ -107,7 +110,6 @@ export class WatermarkService {
         };
       }
       case 'm': {
-        const dynamicSize = Math.floor((imageWidth * 0.5) / textLength);
         return {
           fontSize: dynamicSize > 60 ? 60 : dynamicSize,
           x: 1,
@@ -116,7 +118,6 @@ export class WatermarkService {
         };
       }
       case 'l': {
-        const dynamicSize = Math.floor((imageWidth * 0.8) / textLength);
         return {
           fontSize: dynamicSize > 80 ? 80 : dynamicSize,
           x: type === 'single' ? 1 : 5,

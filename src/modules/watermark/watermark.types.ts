@@ -2,10 +2,10 @@ export type GenerateWatermarkSvgProps = {
   text: string;
   size?: Size;
   position?: string; //TODO: change to union
-  style?: Record<string, any>;
   type?: WatermarkType;
   imageWidth: number;
   imageHeight: number;
+  opacity?: number;
 };
 export type Size = 's' | 'm' | 'l';
 
@@ -32,6 +32,7 @@ export type PattertPart = {
 export type PatternTypes = {
   partInRow: number;
   partInColumn: number;
+  weightCoefficient: number;
 };
 
 export type GenerateSizesT = {
@@ -42,7 +43,7 @@ export type GenerateSizesT = {
 };
 
 export const dictionary: Record<Size, PatternTypes> = {
-  s: { partInRow: 7, partInColumn: 20 },
-  m: { partInRow: 4, partInColumn: 10 },
-  l: { partInRow: 2, partInColumn: 4 },
+  s: { partInRow: 7, partInColumn: 20, weightCoefficient: 0.3 },
+  m: { partInRow: 4, partInColumn: 10, weightCoefficient: 0.5 },
+  l: { partInRow: 2, partInColumn: 4, weightCoefficient: 0.8 },
 };
