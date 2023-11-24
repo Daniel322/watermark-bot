@@ -14,19 +14,35 @@ export const COLORS_TYPES = {
   black: 'black',
 } as const;
 
+export const POSITION_TYPES = {
+  topLeft: 'topLeft',
+  topCenter: 'topCenter',
+  topRight: 'topRight',
+  centerLeft: 'centerLeft',
+  centerCenter: 'centerCenter',
+  centerRight: 'centerRight',
+  bottomLeft: 'bottomLeft',
+  bottomCenter: 'bottomCenter',
+  bottomRight: 'bottomRight',
+} as const;
+
 export type Size = keyof typeof SIZES;
 
 export type Color = keyof typeof COLORS_TYPES;
 
 export type WatermarkType = keyof typeof WATERMARK_TYPES;
 
+export type PositionType = keyof typeof POSITION_TYPES;
+
+export type SetPositionKeys = 'position' | 'imageHeight' | 'imageWidth';
+
 export type GenerateTextWatermarkProps = {
   text: string;
-  size?: Size;
-  position?: string; //TODO: change to union
-  type?: WatermarkType;
   imageWidth: number;
   imageHeight: number;
+  size?: Size;
+  position?: PositionType;
+  type?: WatermarkType;
   opacity?: number;
   color?: Color;
 };
@@ -59,6 +75,16 @@ export type SizeData = {
   defaultFontSize: number;
 };
 
+export type Coordinates = {
+  x: number;
+  y: number;
+};
+
+export type CompositePosition = {
+  top: number;
+  left: number;
+};
+
 export const dictionary: Record<Size, SizeData> = {
   s: {
     partInRow: 7,
@@ -79,7 +105,7 @@ export const dictionary: Record<Size, SizeData> = {
     partInColumn: 10,
     weightCoefficient: 0.5,
     x: 1,
-    y: 7,
+    y: 6,
     defaultFontSize: 60,
   },
   l: {
@@ -98,4 +124,16 @@ export const dictionary: Record<Size, SizeData> = {
 export const colors: Record<Color, string> = {
   black: '0,0,0',
   white: '255,255,255',
+};
+
+export const POSITIONS: Record<PositionType, Coordinates> = {
+  topLeft: { x: 0, y: 0 },
+  topCenter: { x: 0.4, y: 0 },
+  topRight: { x: 0.75, y: 0 },
+  centerLeft: { x: 0, y: 0.45 },
+  centerCenter: { x: 0.4, y: 0.45 },
+  centerRight: { x: 0.75, y: 0.45 },
+  bottomLeft: { x: 0, y: 0.9 },
+  bottomCenter: { x: 0.4, y: 0.9 },
+  bottomRight: { x: 0.75, y: 0.9 },
 };
