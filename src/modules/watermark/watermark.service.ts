@@ -130,7 +130,7 @@ export class WatermarkService {
     const svg = `
     <svg width="${imageWidth}" height="${imageHeight}">
     <style>
-    .title { fill: rgba(${colors[color]}, ${opacity}); font-size: ${fontSize}px; font-weight: bold; textAlign: left; text-decoration: underline }
+    .title { fill: rgba(${colors[color]}, ${opacity}); font-size: ${fontSize}px; font-weight: bold; textAlign: left }
     </style>
     ${patternText}
     </svg>
