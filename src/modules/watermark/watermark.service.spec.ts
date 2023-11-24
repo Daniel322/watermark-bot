@@ -1,4 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
+
+import { readFileSync } from 'fs';
+import { join } from 'path';
+
 import { WatermarkService } from './watermark.service';
 import {
   CompositePosition,
@@ -6,8 +10,6 @@ import {
   GenerateTextWatermarkProps,
   dictionary,
 } from './watermark.types';
-import { readFileSync } from 'fs';
-import { join } from 'path';
 
 describe('WatermarkService', () => {
   let service: WatermarkService;
@@ -51,7 +53,7 @@ describe('WatermarkService', () => {
       expect(service.generateCompositePositionValues(options)).toBeDefined();
     });
 
-    it('shoul be return CompositePosition type object', () => {
+    it('should return CompositePosition type object', () => {
       expect(
         service.generateCompositePositionValues(options),
       ).toEqual<CompositePosition>({ top: 0, left: 0 });

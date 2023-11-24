@@ -93,7 +93,7 @@ export class WatermarkService {
       <style>
       .title { fill: rgba(${
         colors[color]
-      }, ${opacity}); font-size: ${fontSize}px; font-weight: bold; textAlign: left }
+      }, ${opacity}); font-size: ${fontSize}px; font-weight: bold; textAlign: left; }
       </style>
       <text x="${this.getCoordUtil(
         x,
