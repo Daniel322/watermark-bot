@@ -45,6 +45,7 @@ export type GenerateTextWatermarkProps = {
   type?: WatermarkType;
   opacity?: number;
   color?: Color;
+  rotate?: number;
 };
 
 export type SetTextWatermarkProps = {
@@ -75,6 +76,15 @@ export type SizeData = {
   defaultFontSize: number;
 };
 
+export type SizeDataV2 = {
+  partInRow: number;
+  partInColumn: number;
+  weightCoefficient: number;
+  x: Record<WatermarkType, Record<PositionType, number> | number>;
+  y: Record<WatermarkType, Record<PositionType, number> | number>;
+  defaultFontSize: number;
+};
+
 export type Coordinates = {
   x: number;
   y: number;
@@ -83,6 +93,11 @@ export type Coordinates = {
 export type CompositePosition = {
   top: number;
   left: number;
+};
+
+export type TransformValues = {
+  translateX: number;
+  translateY: number;
 };
 
 export const dictionary: Record<Size, SizeData> = {
@@ -117,6 +132,111 @@ export const dictionary: Record<Size, SizeData> = {
       pattern: 5,
     },
     y: 10,
+    defaultFontSize: 80,
+  },
+};
+
+export const dictionaryV2: Record<Size, SizeDataV2> = {
+  s: {
+    partInRow: 7,
+    partInColumn: 20,
+    weightCoefficient: 0.3,
+    x: {
+      single: {
+        topLeft: 1,
+        topCenter: 50,
+        topRight: 75,
+        centerLeft: 1,
+        centerCenter: 50,
+        centerRight: 75,
+        bottomLeft: 1,
+        bottomCenter: 50,
+        bottomRight: 75,
+      },
+      pattern: 0.5,
+    },
+    y: {
+      single: {
+        topLeft: 1,
+        topCenter: 1,
+        topRight: 1,
+        centerLeft: 50,
+        centerCenter: 50,
+        centerRight: 50,
+        bottomLeft: 90,
+        bottomCenter: 90,
+        bottomRight: 90,
+      },
+      pattern: 4,
+    },
+    defaultFontSize: 40,
+  },
+  m: {
+    partInRow: 4,
+    partInColumn: 10,
+    weightCoefficient: 0.5,
+    x: {
+      single: {
+        topLeft: 1,
+        topCenter: 50,
+        topRight: 75,
+        centerLeft: 1,
+        centerCenter: 50,
+        centerRight: 75,
+        bottomLeft: 1,
+        bottomCenter: 50,
+        bottomRight: 75,
+      },
+      pattern: 1,
+    },
+    y: {
+      single: {
+        topLeft: 1,
+        topCenter: 1,
+        topRight: 1,
+        centerLeft: 50,
+        centerCenter: 50,
+        centerRight: 50,
+        bottomLeft: 90,
+        bottomCenter: 90,
+        bottomRight: 90,
+      },
+      pattern: 6,
+    },
+    defaultFontSize: 60,
+  },
+  l: {
+    partInRow: 2,
+    partInColumn: 4,
+    weightCoefficient: 0.8,
+    x: {
+      single: {
+        topLeft: 1,
+        topCenter: 50,
+        topRight: 75,
+        centerLeft: 1,
+        centerCenter: 50,
+        centerRight: 75,
+        bottomLeft: 1,
+        bottomCenter: 50,
+        bottomRight: 75,
+      },
+      pattern: 5,
+    },
+    y: {
+      single: {
+        topLeft: 1,
+        topCenter: 1,
+        topRight: 1,
+        centerLeft: 50,
+        centerCenter: 50,
+        centerRight: 50,
+        bottomLeft: 90,
+        bottomCenter: 90,
+        bottomRight: 90,
+      },
+      pattern: 10,
+    },
     defaultFontSize: 80,
   },
 };
