@@ -12,6 +12,10 @@ import {
   WATERMARK_TYPES,
   COLORS_TYPES,
   SIZES,
+  POSITION_TYPES,
+  POSITIONS,
+  SetPositionKeys,
+  CompositePosition,
 } from './watermark.types';
 
 @Injectable()
@@ -39,9 +43,20 @@ export class WatermarkService {
         ? this.generateSingleWatermarkSvg(generateOptions)
         : this.generatePatternWatermarkSvg(generateOptions);
 
+    let compositeOptions: CompositePosition = { top: 0, left: 0 };
+
+    if (type === WATERMARK_TYPES.single) {
+      compositeOptions = this.generateCompositePositionValues({
+        imageHeight: height,
+        imageWidth: width,
+        position: options.position,
+      });
+    }
+
     const imageWithWatermark = await this.compositeImageAndWatermark(
       file,
       textWatermarkBuffer,
+      compositeOptions,
     );
 
     return imageWithWatermark;
@@ -50,9 +65,10 @@ export class WatermarkService {
   compositeImageAndWatermark(
     image: Buffer,
     watermark: Buffer,
+    options: CompositePosition = { top: 0, left: 0 },
   ): Promise<Buffer> {
     return sharp(image)
-      .composite([{ input: watermark, top: 0, left: 0 }])
+      .composite([{ input: watermark, ...options }])
       .toBuffer();
   }
 
@@ -73,7 +89,7 @@ export class WatermarkService {
     const { x, y } = dictionary[size];
 
     const svg = `
-      <svg width="${imageWidth}" height="${imageHeight}">
+      <svg width="${imageWidth}" height="${imageHeight}" viewBox="0 0 ${imageWidth} ${imageHeight}">
       <style>
       .title { fill: rgba(${
         colors[color]
@@ -158,5 +174,18 @@ export class WatermarkService {
     type: WatermarkType,
   ) {
     return typeof value === 'number' ? value : value[type];
+  }
+
+  generateCompositePositionValues({
+    position = POSITION_TYPES.topLeft,
+    imageWidth,
+    imageHeight,
+  }: Pick<GenerateTextWatermarkProps, SetPositionKeys>): CompositePosition {
+    const { x, y } = POSITIONS[position];
+
+    return {
+      top: Math.floor(imageHeight * y),
+      left: Math.floor(imageWidth * x),
+    };
   }
 }

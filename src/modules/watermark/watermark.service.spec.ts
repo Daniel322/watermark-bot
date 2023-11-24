@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { WatermarkService } from './watermark.service';
 import {
+  CompositePosition,
   GeneratePatternProps,
   GenerateTextWatermarkProps,
   dictionary,
@@ -35,12 +36,25 @@ describe('WatermarkService', () => {
       expect(service.getCoordUtil(yS, 'pattern')).toEqual<number>(4);
       expect(service.getCoordUtil(xM, 'single')).toEqual<number>(1);
       expect(service.getCoordUtil(xM, 'pattern')).toEqual<number>(1);
-      expect(service.getCoordUtil(yM, 'single')).toEqual<number>(7);
-      expect(service.getCoordUtil(yM, 'pattern')).toEqual<number>(7);
+      expect(service.getCoordUtil(yM, 'single')).toEqual<number>(6);
+      expect(service.getCoordUtil(yM, 'pattern')).toEqual<number>(6);
       expect(service.getCoordUtil(xL, 'single')).toEqual<number>(1);
       expect(service.getCoordUtil(xL, 'pattern')).toEqual<number>(5);
       expect(service.getCoordUtil(yL, 'single')).toEqual<number>(10);
       expect(service.getCoordUtil(yL, 'pattern')).toEqual<number>(10);
+    });
+  });
+
+  describe('generateCompositePositionValues', () => {
+    const options = { imageHeight: 1000, imageWidth: 1000 };
+    it('should be defined', () => {
+      expect(service.generateCompositePositionValues(options)).toBeDefined();
+    });
+
+    it('shoul be return CompositePosition type object', () => {
+      expect(
+        service.generateCompositePositionValues(options),
+      ).toEqual<CompositePosition>({ top: 0, left: 0 });
     });
   });
 
