@@ -16,6 +16,14 @@ import { CACHE_MANAGER } from '@nestjs/cache-manager';
 
 import { Bind } from '@common/decorators';
 import { WatermarkService } from '@modules/watermark/watermark.service';
+import {
+  COLORS_TYPES,
+  Color,
+  SIZES,
+  Size,
+  WATERMARK_TYPES,
+  WatermarkType,
+} from '@modules/watermark/watermark.types';
 
 import {
   ACTIONS,
@@ -23,11 +31,11 @@ import {
   COMMANDS_LIST,
   EVENTS,
   MESSAGES,
-  SIZE_SETTINGS,
   SYS_MESSAGES,
 } from './telegraf.constants';
 import { TELEGRAF_TOKEN } from './telegraf.provider';
 import { TelegrafUiServuce } from './telegraf.ui.service';
+import { TmpTypeName } from './telegraf.types';
 
 @Injectable()
 export class TelegrafService implements OnModuleInit, OnModuleDestroy {
@@ -66,63 +74,18 @@ export class TelegrafService implements OnModuleInit, OnModuleDestroy {
 
   setListeners(): void {
     this.bot.start(this.onStart);
-    this.bot.command(COMMANDS.SETTINGS, this.onSettings);
+    this.bot.command(COMMANDS.HELP, this.onHelp);
     this.bot.on(message(EVENTS.MESSAGES.PHOTO), this.onPhoto);
     this.bot.on(message(EVENTS.MESSAGES.TEXT), this.onText);
-    this.bot.action(ACTIONS.SIZE, this.onSize);
-    this.bot.action(ACTIONS.SETTINGS, this.onSettings);
-    this.bot.action(ACTIONS.EXIT_SETTINGS, this.onExitSettings);
-    this.bot.action(
-      SIZE_SETTINGS.map((item) => item.data),
-      this.onChangeSizeSettings,
-    );
+    this.bot.action(Object.values(COLORS_TYPES), this.onColor);
+    this.bot.action(Object.values(WATERMARK_TYPES), this.onPlacementStyle);
+    this.bot.action(Object.values(SIZES), this.onSize);
+    this.bot.action(new RegExp(ACTIONS.OPACITY), this.onOpacity);
   }
 
   @Bind
   onStart(ctx: Context): void {
     ctx.reply(MESSAGES.WELCOME);
-  }
-
-  @Bind
-  async onSize(ctx: Context): Promise<void> {
-    if ('data' in ctx.callbackQuery) {
-      ctx.editMessageText(
-        MESSAGES.CHANGE_SIZE,
-        this.uiService.sizeInlineKeyboard,
-      );
-    } else {
-      this.logger.error(SYS_MESSAGES.UNKNOWN_ACTION);
-      ctx.reply(MESSAGES.BAD_REQUEST);
-    }
-  }
-
-  @Bind
-  async onText(ctx: Context): Promise<void> {
-    try {
-      if ('text' in ctx.message) {
-        const { from, text } = ctx.message;
-
-        const buf = await this.cacheManager.get<Buffer>(String(from.id));
-        if (buf == null) throw new Error(SYS_MESSAGES.FILE_BUF_NOT_FOUND);
-
-        const bufWithWatermark =
-          await this.watermarkService.createImageWithTextWatermark({
-            file: buf,
-            text,
-            options: {
-              // TODO replace to size from settings
-              size: 'l',
-            },
-          });
-        await ctx.replyWithPhoto({ source: bufWithWatermark });
-      } else {
-        this.logger.error(SYS_MESSAGES.NO_TEXT_IN_MESSAGE);
-        await ctx.reply(MESSAGES.BAD_REQUEST);
-      }
-    } catch (error) {
-      this.logger.error(error.message);
-      await ctx.reply(MESSAGES.FILE_NOT_FOUND);
-    }
   }
 
   @Bind
@@ -142,7 +105,7 @@ export class TelegrafService implements OnModuleInit, OnModuleDestroy {
 
         await this.cacheManager.set(
           String(from.id),
-          Buffer.from(arrayBuffer).buffer,
+          { file: Buffer.from(arrayBuffer).buffer, text: '' },
           ttl,
         );
 
@@ -157,27 +120,57 @@ export class TelegrafService implements OnModuleInit, OnModuleDestroy {
   }
 
   @Bind
-  onSettings(ctx: Context): void {
-    if ('command' in ctx) {
-      ctx.replyWithMarkdownV2(
-        MESSAGES.CHANGE_SETTINGS,
-        this.uiService.settingsInlineKeyboard,
-      );
-    } else {
-      ctx.editMessageText(
-        MESSAGES.CHANGE_SETTINGS,
-        this.uiService.settingsInlineKeyboard,
-      );
+  async onText(ctx: Context): Promise<void> {
+    try {
+      if ('text' in ctx.message) {
+        const { from, text } = ctx.message;
+
+        const userInput = await this.cacheManager.get<TmpTypeName>(
+          String(from.id),
+        );
+
+        if (userInput.file == null) {
+          throw new Error(SYS_MESSAGES.FILE_BUF_NOT_FOUND);
+        }
+
+        const ttl = this.configService.get<number>('cache.fileBufTtl');
+
+        userInput.text = text;
+
+        await this.cacheManager.set(String(from.id), userInput, ttl);
+
+        await ctx.replyWithMarkdownV2(
+          MESSAGES.CHOOSE_PLACEMENT_STYLE,
+          this.uiService.patternTypeKeyboard,
+        );
+      } else {
+        this.logger.error(SYS_MESSAGES.NO_TEXT_IN_MESSAGE);
+        await ctx.reply(MESSAGES.BAD_REQUEST);
+      }
+    } catch (error) {
+      this.logger.error(error.message);
+      await ctx.reply(MESSAGES.FILE_NOT_FOUND);
     }
   }
 
   @Bind
-  onChangeSizeSettings(ctx: Context): void {
+  async onPlacementStyle(ctx: Context): Promise<void> {
     if ('data' in ctx.callbackQuery) {
-      this.uiService.userSettings.size = ctx.callbackQuery.data;
-      ctx.editMessageText(
-        MESSAGES.CHANGE_SIZE,
-        this.uiService.sizeInlineKeyboard,
+      const { data, from } = ctx.callbackQuery;
+
+      const userInput = await this.cacheManager.get<TmpTypeName>(
+        String(from.id),
+      );
+
+      const ttl = this.configService.get<number>('cache.fileBufTtl');
+
+      userInput.type = data as WatermarkType;
+
+      await this.cacheManager.set(String(from.id), userInput, ttl);
+
+      await ctx.editMessageText(
+        MESSAGES.CHOOSE_SIZE,
+        this.uiService.sizeKeyboard,
       );
     } else {
       this.logger.error(SYS_MESSAGES.NO_DATA_ON_CHANGE_SIZE);
@@ -186,8 +179,83 @@ export class TelegrafService implements OnModuleInit, OnModuleDestroy {
   }
 
   @Bind
-  onExitSettings(ctx: Context): void {
-    ctx.editMessageText(MESSAGES.UPDATE_SETTINGS);
+  async onSize(ctx: Context): Promise<void> {
+    if ('data' in ctx.callbackQuery) {
+      const { data, from } = ctx.callbackQuery;
+
+      const userInput = await this.cacheManager.get<TmpTypeName>(
+        String(from.id),
+      );
+
+      const ttl = this.configService.get<number>('cache.fileBufTtl');
+
+      userInput.size = data as Size;
+
+      await this.cacheManager.set(String(from.id), userInput, ttl);
+
+      await ctx.editMessageText(
+        MESSAGES.CHOOSE_OPACITY,
+        this.uiService.opacityKeyboard,
+      );
+    } else {
+      this.logger.error(SYS_MESSAGES.NO_DATA_ON_CHANGE_SIZE);
+      ctx.reply(MESSAGES.BAD_REQUEST);
+    }
+  }
+
+  @Bind
+  async onOpacity(ctx: Context): Promise<void> {
+    if ('data' in ctx.callbackQuery) {
+      const { data, from } = ctx.callbackQuery;
+
+      const userInput = await this.cacheManager.get<TmpTypeName>(
+        String(from.id),
+      );
+
+      const ttl = this.configService.get<number>('cache.fileBufTtl');
+
+      const [, rawOpacity] = data.split('|');
+
+      userInput.opacity = Number(rawOpacity);
+
+      await this.cacheManager.set(String(from.id), userInput, ttl);
+
+      await ctx.editMessageText(
+        MESSAGES.CHOOSE_COLOR,
+        this.uiService.colorKeyboard,
+      );
+    } else {
+      this.logger.error(SYS_MESSAGES.NO_DATA_ON_CHANGE_SIZE);
+      ctx.reply(MESSAGES.BAD_REQUEST);
+    }
+  }
+
+  @Bind
+  async onColor(ctx: Context): Promise<void> {
+    if ('data' in ctx.callbackQuery) {
+      const { data, from } = ctx.callbackQuery;
+
+      const userInput = await this.cacheManager.get<TmpTypeName>(
+        String(from.id),
+      );
+
+      userInput.color = data as Color;
+
+      const bufWithWatermark =
+        await this.watermarkService.createImageWithTextWatermark(userInput);
+      await Promise.all([
+        ctx.editMessageText(MESSAGES.COMPLETE),
+        ctx.replyWithPhoto({ source: bufWithWatermark }),
+      ]);
+    } else {
+      this.logger.error(SYS_MESSAGES.NO_DATA_ON_CHANGE_SIZE);
+      ctx.reply(MESSAGES.BAD_REQUEST);
+    }
+  }
+
+  @Bind
+  onHelp(ctx: Context): void {
+    ctx.reply(MESSAGES.HELP);
   }
 
   async getFile(url: string): Promise<ArrayBuffer> {
