@@ -106,7 +106,7 @@ export const dictionary: Record<Size, SizeData> = {
     partInColumn: 20,
     weightCoefficient: 0.3,
     x: {
-      single: 1,
+      single: 3,
       pattern: 0.5,
     },
     y: {
