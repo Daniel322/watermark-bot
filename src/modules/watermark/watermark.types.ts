@@ -71,15 +71,6 @@ export type SizeData = {
   partInRow: number;
   partInColumn: number;
   weightCoefficient: number;
-  x: Record<WatermarkType, number> | number;
-  y: Record<WatermarkType, number> | number;
-  defaultFontSize: number;
-};
-
-export type SizeDataV2 = {
-  partInRow: number;
-  partInColumn: number;
-  weightCoefficient: number;
   x: Record<WatermarkType, Record<PositionType, number> | number>;
   y: Record<WatermarkType, Record<PositionType, number> | number>;
   defaultFontSize: number;
@@ -100,43 +91,7 @@ export type TransformValues = {
   translateY: number;
 };
 
-export const dictionary: Record<Size, SizeData> = {
-  s: {
-    partInRow: 7,
-    partInColumn: 20,
-    weightCoefficient: 0.3,
-    x: {
-      single: 3,
-      pattern: 0.5,
-    },
-    y: {
-      single: 5,
-      pattern: 4,
-    },
-    defaultFontSize: 40,
-  },
-  m: {
-    partInRow: 4,
-    partInColumn: 10,
-    weightCoefficient: 0.5,
-    x: 1,
-    y: 6,
-    defaultFontSize: 60,
-  },
-  l: {
-    partInRow: 2,
-    partInColumn: 4,
-    weightCoefficient: 0.8,
-    x: {
-      single: 1,
-      pattern: 5,
-    },
-    y: 10,
-    defaultFontSize: 80,
-  },
-};
-
-export const dictionaryV2: Record<Size, SizeDataV2> = {
+export const DICTIONARY: Record<Size, SizeData> = {
   s: {
     partInRow: 7,
     partInColumn: 20,
@@ -144,28 +99,28 @@ export const dictionaryV2: Record<Size, SizeDataV2> = {
     x: {
       single: {
         topLeft: 1,
-        topCenter: 50,
-        topRight: 75,
+        topCenter: 45,
+        topRight: 85,
         centerLeft: 1,
-        centerCenter: 50,
-        centerRight: 75,
+        centerCenter: 45,
+        centerRight: 85,
         bottomLeft: 1,
-        bottomCenter: 50,
-        bottomRight: 75,
+        bottomCenter: 45,
+        bottomRight: 85,
       },
       pattern: 0.5,
     },
     y: {
       single: {
-        topLeft: 1,
-        topCenter: 1,
-        topRight: 1,
+        topLeft: 5,
+        topCenter: 5,
+        topRight: 5,
         centerLeft: 50,
         centerCenter: 50,
         centerRight: 50,
-        bottomLeft: 90,
-        bottomCenter: 90,
-        bottomRight: 90,
+        bottomLeft: 95,
+        bottomCenter: 95,
+        bottomRight: 95,
       },
       pattern: 4,
     },
@@ -178,28 +133,28 @@ export const dictionaryV2: Record<Size, SizeDataV2> = {
     x: {
       single: {
         topLeft: 1,
-        topCenter: 50,
+        topCenter: 40,
         topRight: 75,
         centerLeft: 1,
-        centerCenter: 50,
+        centerCenter: 40,
         centerRight: 75,
         bottomLeft: 1,
-        bottomCenter: 50,
+        bottomCenter: 40,
         bottomRight: 75,
       },
       pattern: 1,
     },
     y: {
       single: {
-        topLeft: 1,
-        topCenter: 1,
-        topRight: 1,
+        topLeft: 7,
+        topCenter: 7,
+        topRight: 7,
         centerLeft: 50,
         centerCenter: 50,
         centerRight: 50,
-        bottomLeft: 90,
-        bottomCenter: 90,
-        bottomRight: 90,
+        bottomLeft: 95,
+        bottomCenter: 95,
+        bottomRight: 95,
       },
       pattern: 6,
     },
@@ -212,28 +167,28 @@ export const dictionaryV2: Record<Size, SizeDataV2> = {
     x: {
       single: {
         topLeft: 1,
-        topCenter: 50,
-        topRight: 75,
+        topCenter: 33,
+        topRight: 62,
         centerLeft: 1,
-        centerCenter: 50,
-        centerRight: 75,
+        centerCenter: 33,
+        centerRight: 62,
         bottomLeft: 1,
-        bottomCenter: 50,
-        bottomRight: 75,
+        bottomCenter: 33,
+        bottomRight: 62,
       },
       pattern: 5,
     },
     y: {
       single: {
-        topLeft: 1,
-        topCenter: 1,
-        topRight: 1,
+        topLeft: 10,
+        topCenter: 10,
+        topRight: 10,
         centerLeft: 50,
         centerCenter: 50,
         centerRight: 50,
-        bottomLeft: 90,
-        bottomCenter: 90,
-        bottomRight: 90,
+        bottomLeft: 95,
+        bottomCenter: 95,
+        bottomRight: 95,
       },
       pattern: 10,
     },
@@ -241,19 +196,7 @@ export const dictionaryV2: Record<Size, SizeDataV2> = {
   },
 };
 
-export const colors: Record<Color, string> = {
+export const COLORS: Record<Color, string> = {
   black: '0,0,0',
   white: '255,255,255',
-};
-
-export const POSITIONS: Record<PositionType, Coordinates> = {
-  topLeft: { x: 0, y: 0 },
-  topCenter: { x: 0.4, y: 0 },
-  topRight: { x: 0.75, y: 0 },
-  centerLeft: { x: 0, y: 0.45 },
-  centerCenter: { x: 0.4, y: 0.45 },
-  centerRight: { x: 0.75, y: 0.45 },
-  bottomLeft: { x: 0, y: 0.9 },
-  bottomCenter: { x: 0.4, y: 0.9 },
-  bottomRight: { x: 0.75, y: 0.9 },
 };
