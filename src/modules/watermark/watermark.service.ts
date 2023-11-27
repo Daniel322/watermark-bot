@@ -7,15 +7,15 @@ import {
   GeneratePatternProps,
   SetTextWatermarkProps,
   WatermarkType,
-  colors,
-  dictionary,
+  COLORS,
   WATERMARK_TYPES,
   COLORS_TYPES,
   SIZES,
   POSITION_TYPES,
-  POSITIONS,
-  SetPositionKeys,
   CompositePosition,
+  TransformValues,
+  PositionType,
+  DICTIONARY,
 } from './watermark.types';
 
 @Injectable()
@@ -43,15 +43,7 @@ export class WatermarkService {
         ? this.generateSingleWatermarkSvg(generateOptions)
         : this.generatePatternWatermarkSvg(generateOptions);
 
-    let compositeOptions: CompositePosition = { top: 0, left: 0 };
-
-    if (type === WATERMARK_TYPES.single) {
-      compositeOptions = this.generateCompositePositionValues({
-        imageHeight: height,
-        imageWidth: width,
-        position: options.position,
-      });
-    }
+    const compositeOptions: CompositePosition = { top: 0, left: 0 };
 
     const imageWithWatermark = await this.compositeImageAndWatermark(
       file,
@@ -79,6 +71,8 @@ export class WatermarkService {
     size = SIZES.s,
     opacity = 1,
     color = COLORS_TYPES.white,
+    rotate = 0,
+    position = POSITION_TYPES.topLeft,
   }: GenerateTextWatermarkProps): Buffer {
     const fontSize = this.getFontSize({
       size,
@@ -86,21 +80,29 @@ export class WatermarkService {
       imageWidth,
     });
 
-    const { x, y } = dictionary[size];
+    const { x, y } = DICTIONARY[size];
+
+    const { translateX, translateY } = this.generateTransformTextValues(rotate);
 
     const svg = `
-      <svg width="${imageWidth}" height="${imageHeight}" viewBox="0 0 ${imageWidth} ${imageHeight}">
+      <svg width="${imageWidth}" height="${imageHeight}" style="border:2px solid red">
+      <rect x="0" y="0" width="${imageWidth}" height="${imageHeight}" style="fill:blue; stroke:pink; stroke-width:5; fill-opacity:0.1; stroke-opacity:0.9;" />
       <style>
-      .title { fill: rgba(${
-        colors[color]
-      }, ${opacity}); font-size: ${fontSize}px; font-weight: bold; textAlign: left; }
+      .title { fill: rgba(${COLORS[color]}, ${opacity});
+      font-size: ${fontSize}px;
+      font-weight: bold;
+      textAlign: left;
+      transform: rotate(${rotate}) translate(${translateX}, ${translateY});
+    }
       </style>
       <text x="${this.getCoordUtil(
         x,
         WATERMARK_TYPES.single,
+        position,
       )}%" y="${this.getCoordUtil(
         y,
         WATERMARK_TYPES.single,
+        position,
       )}%" text-anchor="start" class="title">${text}</text>
       </svg>
     `;
@@ -116,7 +118,7 @@ export class WatermarkService {
     opacity = 1,
     color = COLORS_TYPES.white,
   }: GenerateTextWatermarkProps): Buffer {
-    const { weightCoefficient, x, y } = dictionary[size];
+    const { weightCoefficient, x, y } = DICTIONARY[size];
 
     const fontSize = (imageWidth * weightCoefficient) / text.length;
 
@@ -130,7 +132,7 @@ export class WatermarkService {
     const svg = `
     <svg width="${imageWidth}" height="${imageHeight}">
     <style>
-    .title { fill: rgba(${colors[color]}, ${opacity}); font-size: ${fontSize}px; font-weight: bold; textAlign: left }
+    .title { fill: rgba(${COLORS[color]}, ${opacity}); font-size: ${fontSize}px; font-weight: bold; textAlign: left }
     </style>
     ${patternText}
     </svg>
@@ -142,7 +144,7 @@ export class WatermarkService {
   generatePattern({ size, text, x, y }: GeneratePatternProps): string {
     const patternParts: string[] = [];
 
-    const { partInRow, partInColumn } = dictionary[size];
+    const { partInRow, partInColumn } = DICTIONARY[size];
     let partY = y;
 
     for (let column = 0; column < partInColumn; column++) {
@@ -160,7 +162,7 @@ export class WatermarkService {
   }
 
   getFontSize({ size = SIZES.s, textLength, imageWidth }: GetFontSizeProps) {
-    const { defaultFontSize, weightCoefficient } = dictionary[size];
+    const { defaultFontSize, weightCoefficient } = DICTIONARY[size];
 
     const dynamicSize = Math.floor(
       (imageWidth * weightCoefficient) / textLength,
@@ -170,22 +172,26 @@ export class WatermarkService {
   }
 
   getCoordUtil(
-    value: Record<WatermarkType, number> | number,
+    value: Record<WatermarkType, Record<PositionType, number> | number>,
     type: WatermarkType,
+    position: PositionType = POSITION_TYPES.topLeft,
   ) {
-    return typeof value === 'number' ? value : value[type];
+    return type === WATERMARK_TYPES.pattern
+      ? value[type]
+      : value[type][position];
   }
 
-  generateCompositePositionValues({
-    position = POSITION_TYPES.topLeft,
-    imageWidth,
-    imageHeight,
-  }: Pick<GenerateTextWatermarkProps, SetPositionKeys>): CompositePosition {
-    const { x, y } = POSITIONS[position];
-
-    return {
-      top: Math.floor(imageHeight * y),
-      left: Math.floor(imageWidth * x),
-    };
+  generateTransformTextValues(rotate: number): TransformValues {
+    if (rotate >= 0) {
+      return {
+        translateX: rotate > 10 ? rotate - 10 : 0,
+        translateY: 0,
+      };
+    } else {
+      return {
+        translateX: 0,
+        translateY: rotate <= -10 ? -(rotate * 2) : 0,
+      };
+    }
   }
 }
