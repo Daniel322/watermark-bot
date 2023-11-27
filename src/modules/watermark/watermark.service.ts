@@ -176,7 +176,9 @@ export class WatermarkService {
     type: WatermarkType,
     position: PositionType = POSITION_TYPES.topLeft,
   ) {
-    return type === 'pattern' ? value[type] : value[type][position];
+    return type === WATERMARK_TYPES.pattern
+      ? value[type]
+      : value[type][position];
   }
 
   generateTransformTextValues(rotate: number): TransformValues {
