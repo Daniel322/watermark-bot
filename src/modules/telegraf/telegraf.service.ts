@@ -279,12 +279,16 @@ export class TelegrafService implements OnModuleInit, OnModuleDestroy {
 
       this.userStatesService.update(from.id, { color: data as Color });
 
-      const selectedOptions = this.userStatesService.getStateData(from.id);
+      const { file, text, ...options } = this.userStatesService.getStateData(
+        from.id,
+      );
 
       const bufWithWatermark =
-        await this.watermarkService.createImageWithTextWatermark(
-          selectedOptions,
-        );
+        await this.watermarkService.createImageWithTextWatermark({
+          file,
+          text,
+          options,
+        });
 
       await Promise.all([
         ctx.editMessageText(MESSAGES.COMPLETE),
