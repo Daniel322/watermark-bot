@@ -11,8 +11,6 @@ import { Telegraf, type Context } from 'telegraf';
 import { message } from 'telegraf/filters';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
-import { Cache } from 'cache-manager';
-import { CACHE_MANAGER } from '@nestjs/cache-manager';
 
 import { Bind } from '@common/decorators';
 import { WatermarkService } from '@modules/watermark/watermark.service';
@@ -27,6 +25,7 @@ import {
 
 import {
   ACTIONS,
+  BOT_STATES,
   COMMANDS,
   COMMANDS_LIST,
   EVENTS,
@@ -35,7 +34,8 @@ import {
 } from './telegraf.constants';
 import { TELEGRAF_TOKEN } from './telegraf.provider';
 import { TelegrafUiServuce } from './telegraf.ui.service';
-import { TmpTypeName } from './telegraf.types';
+import { TelegrafUsersStatesService } from './telegraf.users-states.service';
+import { BotStates } from './telegraf.types';
 
 @Injectable()
 export class TelegrafService implements OnModuleInit, OnModuleDestroy {
@@ -46,8 +46,7 @@ export class TelegrafService implements OnModuleInit, OnModuleDestroy {
     private readonly httpService: HttpService,
     private readonly watermarkService: WatermarkService,
     private readonly uiService: TelegrafUiServuce,
-    @Inject(CACHE_MANAGER)
-    private readonly cacheManager: Cache,
+    private readonly userStatesService: TelegrafUsersStatesService,
     @Optional()
     @Inject(TELEGRAF_TOKEN)
     private readonly bot: Telegraf,
@@ -98,16 +97,15 @@ export class TelegrafService implements OnModuleInit, OnModuleDestroy {
 
         if (file == null) throw new Error(SYS_MESSAGES.NO_FILE_IN_MESSAGE);
 
+        this.userStatesService.add(from.id);
+
         const fileLink = await this.bot.telegram.getFileLink(file.file_id);
         const arrayBuffer = await this.getFile(fileLink.href);
 
-        const ttl = this.configService.get<number>('cache.fileBufTtl');
-
-        await this.cacheManager.set(
-          String(from.id),
-          { file: Buffer.from(arrayBuffer).buffer, text: '' },
-          ttl,
-        );
+        this.userStatesService.update(from.id, {
+          file: Buffer.from(arrayBuffer),
+        });
+        this.userStatesService.goto(from.id, BOT_STATES.ADD_TEXT);
 
         await ctx.reply(MESSAGES.ASK_TEXT);
       } else {
@@ -125,131 +123,178 @@ export class TelegrafService implements OnModuleInit, OnModuleDestroy {
       if ('text' in ctx.message) {
         const { from, text } = ctx.message;
 
-        const userInput = await this.cacheManager.get<TmpTypeName>(
-          String(from.id),
-        );
-
-        if (userInput.file == null) {
-          throw new Error(SYS_MESSAGES.FILE_BUF_NOT_FOUND);
+        if (!this.userStatesService.hasState(from.id)) {
+          this.logger.error(SYS_MESSAGES.USER_STATE_NOT_FOUND);
+          return this.stateNotFoundReply(ctx);
         }
 
-        const ttl = this.configService.get<number>('cache.fileBufTtl');
+        const isSuccess = this.userStatesService.goto(
+          from.id,
+          BOT_STATES.CHOOSE_WM_TYPE,
+        );
 
-        userInput.text = text;
+        if (!isSuccess) {
+          const state = this.userStatesService.getState(from.id);
+          return this.cannotTransistToStateReply(ctx, state);
+        }
 
-        await this.cacheManager.set(String(from.id), userInput, ttl);
+        this.userStatesService.update(from.id, { text });
 
         await ctx.replyWithMarkdownV2(
           MESSAGES.CHOOSE_PLACEMENT_STYLE,
           this.uiService.patternTypeKeyboard,
         );
       } else {
-        this.logger.error(SYS_MESSAGES.NO_TEXT_IN_MESSAGE);
-        await ctx.reply(MESSAGES.BAD_REQUEST);
+        throw new Error(SYS_MESSAGES.NO_TEXT_IN_MESSAGE);
       }
     } catch (error) {
       this.logger.error(error.message);
-      await ctx.reply(MESSAGES.FILE_NOT_FOUND);
+      await ctx.reply(MESSAGES.BAD_REQUEST);
     }
   }
 
   @Bind
   async onPlacementStyle(ctx: Context): Promise<void> {
-    if ('data' in ctx.callbackQuery) {
-      const { data, from } = ctx.callbackQuery;
+    try {
+      if ('data' in ctx.callbackQuery) {
+        const { data, from } = ctx.callbackQuery;
 
-      const userInput = await this.cacheManager.get<TmpTypeName>(
-        String(from.id),
-      );
+        if (!this.userStatesService.hasState(from.id)) {
+          this.logger.error(SYS_MESSAGES.USER_STATE_NOT_FOUND);
+          return this.stateNotFoundReply(ctx);
+        }
 
-      const ttl = this.configService.get<number>('cache.fileBufTtl');
+        const isSuccess = this.userStatesService.goto(
+          from.id,
+          BOT_STATES.CHOOSE_SIZE,
+        );
 
-      userInput.type = data as WatermarkType;
+        if (!isSuccess) {
+          const state = this.userStatesService.getState(from.id);
+          return this.cannotTransistToStateReply(ctx, state);
+        }
 
-      await this.cacheManager.set(String(from.id), userInput, ttl);
+        this.userStatesService.update(from.id, { type: data as WatermarkType });
 
-      await ctx.editMessageText(
-        MESSAGES.CHOOSE_SIZE,
-        this.uiService.sizeKeyboard,
-      );
-    } else {
-      this.logger.error(SYS_MESSAGES.NO_DATA_ON_CHANGE_SIZE);
-      ctx.reply(MESSAGES.BAD_REQUEST);
+        await ctx.editMessageText(
+          MESSAGES.CHOOSE_SIZE,
+          this.uiService.sizeKeyboard,
+        );
+      } else {
+        throw new Error(SYS_MESSAGES.NO_DATA_ON_CHANGE_SIZE);
+      }
+    } catch (error) {
+      this.logger.error(error.message);
+      await ctx.reply(MESSAGES.BAD_REQUEST);
     }
   }
 
   @Bind
   async onSize(ctx: Context): Promise<void> {
-    if ('data' in ctx.callbackQuery) {
-      const { data, from } = ctx.callbackQuery;
+    try {
+      if ('data' in ctx.callbackQuery) {
+        const { data, from } = ctx.callbackQuery;
 
-      const userInput = await this.cacheManager.get<TmpTypeName>(
-        String(from.id),
-      );
+        if (!this.userStatesService.hasState(from.id)) {
+          this.logger.error(SYS_MESSAGES.USER_STATE_NOT_FOUND);
+          return this.stateNotFoundReply(ctx);
+        }
 
-      const ttl = this.configService.get<number>('cache.fileBufTtl');
+        const isSuccess = this.userStatesService.goto(
+          from.id,
+          BOT_STATES.CHOOSE_OPACITY,
+        );
 
-      userInput.size = data as Size;
+        if (!isSuccess) {
+          const state = this.userStatesService.getState(from.id);
+          return this.cannotTransistToStateReply(ctx, state);
+        }
 
-      await this.cacheManager.set(String(from.id), userInput, ttl);
+        this.userStatesService.update(from.id, { size: data as Size });
 
-      await ctx.editMessageText(
-        MESSAGES.CHOOSE_OPACITY,
-        this.uiService.opacityKeyboard,
-      );
-    } else {
-      this.logger.error(SYS_MESSAGES.NO_DATA_ON_CHANGE_SIZE);
-      ctx.reply(MESSAGES.BAD_REQUEST);
+        await ctx.editMessageText(
+          MESSAGES.CHOOSE_OPACITY,
+          this.uiService.opacityKeyboard,
+        );
+      } else {
+        throw new Error(SYS_MESSAGES.NO_DATA_ON_CHANGE_SIZE);
+      }
+    } catch (error) {
+      this.logger.error(error.message);
+      await ctx.reply(MESSAGES.BAD_REQUEST);
     }
   }
 
   @Bind
   async onOpacity(ctx: Context): Promise<void> {
-    if ('data' in ctx.callbackQuery) {
-      const { data, from } = ctx.callbackQuery;
+    try {
+      if ('data' in ctx.callbackQuery) {
+        const { data, from } = ctx.callbackQuery;
 
-      const userInput = await this.cacheManager.get<TmpTypeName>(
-        String(from.id),
-      );
+        if (!this.userStatesService.hasState(from.id)) {
+          this.logger.error(SYS_MESSAGES.USER_STATE_NOT_FOUND);
+          return this.stateNotFoundReply(ctx);
+        }
 
-      const ttl = this.configService.get<number>('cache.fileBufTtl');
+        const isSuccess = this.userStatesService.goto(
+          from.id,
+          BOT_STATES.CHOOSE_COLOR,
+        );
 
-      const [, rawOpacity] = data.split('|');
+        if (!isSuccess) {
+          const state = this.userStatesService.getState(from.id);
+          return this.cannotTransistToStateReply(ctx, state);
+        }
 
-      userInput.opacity = Number(rawOpacity);
+        const [, rawOpacity] = data.split('|');
 
-      await this.cacheManager.set(String(from.id), userInput, ttl);
+        this.userStatesService.update(from.id, { opacity: Number(rawOpacity) });
 
-      await ctx.editMessageText(
-        MESSAGES.CHOOSE_COLOR,
-        this.uiService.colorKeyboard,
-      );
-    } else {
-      this.logger.error(SYS_MESSAGES.NO_DATA_ON_CHANGE_SIZE);
-      ctx.reply(MESSAGES.BAD_REQUEST);
+        await ctx.editMessageText(
+          MESSAGES.CHOOSE_COLOR,
+          this.uiService.colorKeyboard,
+        );
+      } else {
+        throw new Error(SYS_MESSAGES.NO_DATA_ON_CHANGE_SIZE);
+      }
+    } catch (error) {
+      this.logger.error(error.message);
+      await ctx.reply(MESSAGES.BAD_REQUEST);
     }
   }
 
   @Bind
   async onColor(ctx: Context): Promise<void> {
-    if ('data' in ctx.callbackQuery) {
-      const { data, from } = ctx.callbackQuery;
+    try {
+      if ('data' in ctx.callbackQuery) {
+        const { data, from } = ctx.callbackQuery;
 
-      const userInput = await this.cacheManager.get<TmpTypeName>(
-        String(from.id),
-      );
+        if (!this.userStatesService.hasState(from.id)) {
+          this.logger.error(SYS_MESSAGES.USER_STATE_NOT_FOUND);
+          return this.stateNotFoundReply(ctx);
+        }
 
-      userInput.color = data as Color;
+        this.userStatesService.update(from.id, { color: data as Color });
 
-      const bufWithWatermark =
-        await this.watermarkService.createImageWithTextWatermark(userInput);
-      await Promise.all([
-        ctx.editMessageText(MESSAGES.COMPLETE),
-        ctx.replyWithPhoto({ source: bufWithWatermark }),
-      ]);
-    } else {
-      this.logger.error(SYS_MESSAGES.NO_DATA_ON_CHANGE_SIZE);
-      ctx.reply(MESSAGES.BAD_REQUEST);
+        const selectedOptions = this.userStatesService.getStateData(from.id);
+
+        const bufWithWatermark =
+          await this.watermarkService.createImageWithTextWatermark(
+            selectedOptions,
+          );
+
+        await Promise.all([
+          ctx.editMessageText(MESSAGES.COMPLETE),
+          ctx.replyWithPhoto({ source: bufWithWatermark }),
+        ]);
+
+        this.userStatesService.remove(from.id);
+      } else {
+        throw new Error(SYS_MESSAGES.NO_DATA_ON_CHANGE_SIZE);
+      }
+    } catch (error) {
+      this.logger.error(error.message);
+      await ctx.reply(MESSAGES.BAD_REQUEST);
     }
   }
 
@@ -268,5 +313,13 @@ export class TelegrafService implements OnModuleInit, OnModuleDestroy {
     } catch (error) {
       throw new Error(SYS_MESSAGES.FILE_REQUEST_ERROR);
     }
+  }
+
+  stateNotFoundReply(ctx: Context): void {
+    ctx.reply(MESSAGES.USER_STATE_NOT_FOUND);
+  }
+
+  cannotTransistToStateReply(ctx: Context, state: BotStates): void {
+    ctx.reply(MESSAGES.CONTINUE_FROM_STATE(state));
   }
 }

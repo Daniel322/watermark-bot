@@ -1,5 +1,8 @@
 import { type BotCommand } from 'telegraf/typings/core/types/typegram';
 
+import { type BotStates } from './telegraf.types';
+import { BOT_STATES_T } from './telegraf.translations';
+
 export const EMOJI = {
   CHECK_MARK: '✅',
   FILLED_RADIO: '●',
@@ -33,6 +36,10 @@ export const MESSAGES = <const>{
   CHOOSE_OPACITY: `${EMOJI.WHITE_SQUARE} Выберите прозрачность:`,
   COMPLETE: `${EMOJI.GLITTER} Ваш результат:`,
   HELP: `${EMOJI.QUESTION_MARK} Чтобы начать, отправьте изображение, на которое хотите поместить водяной знак`,
+  USER_STATE_NOT_FOUND: `${EMOJI.REPEAT} Активная сессия не найдена. Начните заново с отправки изображения`,
+  CONTINUE_FROM_STATE(state: BotStates): string {
+    return `${EMOJI.CROSS} Нельзя выполнить данное действие\nПродолжите с ${BOT_STATES_T[state]} или начните заново с отправки фото`;
+  },
 };
 
 export const SYS_MESSAGES = <const>{
@@ -44,6 +51,7 @@ export const SYS_MESSAGES = <const>{
   NO_PHOTO_IN_MESSAGE: 'NO_PHOTO_IN_MESSAGE',
   UNKNOWN_ACTION: 'UNKNOWN_ACTION',
   NO_DATA_ON_CHANGE_SIZE: 'NO_DATA_ON_CHANGE_SIZE',
+  USER_STATE_NOT_FOUND: 'USER_STATE_NOT_FOUND',
 };
 
 export const COMMANDS = <const>{
@@ -63,4 +71,14 @@ export const EVENTS = <const>{
     PHOTO: 'photo',
     TEXT: 'text',
   },
+};
+
+export const BOT_STATES = <const>{
+  ADD_BG_PIC: 'ADD_BG_PIC',
+  ADD_TEXT: 'ADD_TEXT',
+  ADD_PIC: 'ADD_PIC',
+  CHOOSE_WM_TYPE: 'CHOOSE_WM_TYPE',
+  CHOOSE_SIZE: 'CHOOSE_SIZE',
+  CHOOSE_OPACITY: 'CHOOSE_OPACITY',
+  CHOOSE_COLOR: 'CHOOSE_COLOR',
 };
