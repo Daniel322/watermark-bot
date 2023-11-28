@@ -90,27 +90,27 @@ export class TelegrafService implements OnModuleInit, OnModuleDestroy {
   @Bind
   async onPhoto(ctx: Context): Promise<void> {
     try {
-      if ('photo' in ctx.message) {
-        const { photo, from } = ctx.message;
-        // with highest resolution
-        const file = photo.at(-1);
-
-        if (file == null) throw new Error(SYS_MESSAGES.NO_FILE_IN_MESSAGE);
-
-        this.userStatesService.add(from.id);
-
-        const fileLink = await this.bot.telegram.getFileLink(file.file_id);
-        const arrayBuffer = await this.getFile(fileLink.href);
-
-        this.userStatesService.update(from.id, {
-          file: Buffer.from(arrayBuffer),
-        });
-        this.userStatesService.goto(from.id, BOT_STATES.ADD_TEXT);
-
-        await ctx.reply(MESSAGES.ASK_TEXT);
-      } else {
+      if (!('photo' in ctx.message)) {
         throw new Error(SYS_MESSAGES.NO_PHOTO_IN_MESSAGE);
       }
+
+      const { photo, from } = ctx.message;
+      // with highest resolution
+      const file = photo.at(-1);
+
+      if (file == null) throw new Error(SYS_MESSAGES.NO_FILE_IN_MESSAGE);
+
+      this.userStatesService.add(from.id);
+
+      const fileLink = await this.bot.telegram.getFileLink(file.file_id);
+      const arrayBuffer = await this.getFile(fileLink.href);
+
+      this.userStatesService.update(from.id, {
+        file: Buffer.from(arrayBuffer),
+      });
+      this.userStatesService.goto(from.id, BOT_STATES.ADD_TEXT);
+
+      await ctx.reply(MESSAGES.ASK_TEXT);
     } catch (error) {
       this.logger.error(error.message);
       await ctx.reply(MESSAGES.BAD_REQUEST);
@@ -120,33 +120,33 @@ export class TelegrafService implements OnModuleInit, OnModuleDestroy {
   @Bind
   async onText(ctx: Context): Promise<void> {
     try {
-      if ('text' in ctx.message) {
-        const { from, text } = ctx.message;
-
-        if (!this.userStatesService.hasState(from.id)) {
-          this.logger.error(SYS_MESSAGES.USER_STATE_NOT_FOUND);
-          return this.stateNotFoundReply(ctx);
-        }
-
-        const isSuccess = this.userStatesService.goto(
-          from.id,
-          BOT_STATES.CHOOSE_WM_TYPE,
-        );
-
-        if (!isSuccess) {
-          const state = this.userStatesService.getState(from.id);
-          return this.cannotTransistToStateReply(ctx, state);
-        }
-
-        this.userStatesService.update(from.id, { text });
-
-        await ctx.replyWithMarkdownV2(
-          MESSAGES.CHOOSE_PLACEMENT_STYLE,
-          this.uiService.patternTypeKeyboard,
-        );
-      } else {
+      if (!('text' in ctx.message)) {
         throw new Error(SYS_MESSAGES.NO_TEXT_IN_MESSAGE);
       }
+
+      const { from, text } = ctx.message;
+
+      if (!this.userStatesService.hasState(from.id)) {
+        this.logger.error(SYS_MESSAGES.USER_STATE_NOT_FOUND);
+        return this.stateNotFoundReply(ctx);
+      }
+
+      const isSuccess = this.userStatesService.goto(
+        from.id,
+        BOT_STATES.CHOOSE_WM_TYPE,
+      );
+
+      if (!isSuccess) {
+        const state = this.userStatesService.getState(from.id);
+        return this.cannotTransistToStateReply(ctx, state);
+      }
+
+      this.userStatesService.update(from.id, { text });
+
+      await ctx.replyWithMarkdownV2(
+        MESSAGES.CHOOSE_PLACEMENT_STYLE,
+        this.uiService.patternTypeKeyboard,
+      );
     } catch (error) {
       this.logger.error(error.message);
       await ctx.reply(MESSAGES.BAD_REQUEST);
@@ -156,33 +156,33 @@ export class TelegrafService implements OnModuleInit, OnModuleDestroy {
   @Bind
   async onPlacementStyle(ctx: Context): Promise<void> {
     try {
-      if ('data' in ctx.callbackQuery) {
-        const { data, from } = ctx.callbackQuery;
-
-        if (!this.userStatesService.hasState(from.id)) {
-          this.logger.error(SYS_MESSAGES.USER_STATE_NOT_FOUND);
-          return this.stateNotFoundReply(ctx);
-        }
-
-        const isSuccess = this.userStatesService.goto(
-          from.id,
-          BOT_STATES.CHOOSE_SIZE,
-        );
-
-        if (!isSuccess) {
-          const state = this.userStatesService.getState(from.id);
-          return this.cannotTransistToStateReply(ctx, state);
-        }
-
-        this.userStatesService.update(from.id, { type: data as WatermarkType });
-
-        await ctx.editMessageText(
-          MESSAGES.CHOOSE_SIZE,
-          this.uiService.sizeKeyboard,
-        );
-      } else {
+      if (!('data' in ctx.callbackQuery)) {
         throw new Error(SYS_MESSAGES.NO_DATA_ON_CHANGE_SIZE);
       }
+
+      const { data, from } = ctx.callbackQuery;
+
+      if (!this.userStatesService.hasState(from.id)) {
+        this.logger.error(SYS_MESSAGES.USER_STATE_NOT_FOUND);
+        return this.stateNotFoundReply(ctx);
+      }
+
+      const isSuccess = this.userStatesService.goto(
+        from.id,
+        BOT_STATES.CHOOSE_SIZE,
+      );
+
+      if (!isSuccess) {
+        const state = this.userStatesService.getState(from.id);
+        return this.cannotTransistToStateReply(ctx, state);
+      }
+
+      this.userStatesService.update(from.id, { type: data as WatermarkType });
+
+      await ctx.editMessageText(
+        MESSAGES.CHOOSE_SIZE,
+        this.uiService.sizeKeyboard,
+      );
     } catch (error) {
       this.logger.error(error.message);
       await ctx.reply(MESSAGES.BAD_REQUEST);
@@ -192,33 +192,33 @@ export class TelegrafService implements OnModuleInit, OnModuleDestroy {
   @Bind
   async onSize(ctx: Context): Promise<void> {
     try {
-      if ('data' in ctx.callbackQuery) {
-        const { data, from } = ctx.callbackQuery;
-
-        if (!this.userStatesService.hasState(from.id)) {
-          this.logger.error(SYS_MESSAGES.USER_STATE_NOT_FOUND);
-          return this.stateNotFoundReply(ctx);
-        }
-
-        const isSuccess = this.userStatesService.goto(
-          from.id,
-          BOT_STATES.CHOOSE_OPACITY,
-        );
-
-        if (!isSuccess) {
-          const state = this.userStatesService.getState(from.id);
-          return this.cannotTransistToStateReply(ctx, state);
-        }
-
-        this.userStatesService.update(from.id, { size: data as Size });
-
-        await ctx.editMessageText(
-          MESSAGES.CHOOSE_OPACITY,
-          this.uiService.opacityKeyboard,
-        );
-      } else {
+      if (!('data' in ctx.callbackQuery)) {
         throw new Error(SYS_MESSAGES.NO_DATA_ON_CHANGE_SIZE);
       }
+
+      const { data, from } = ctx.callbackQuery;
+
+      if (!this.userStatesService.hasState(from.id)) {
+        this.logger.error(SYS_MESSAGES.USER_STATE_NOT_FOUND);
+        return this.stateNotFoundReply(ctx);
+      }
+
+      const isSuccess = this.userStatesService.goto(
+        from.id,
+        BOT_STATES.CHOOSE_OPACITY,
+      );
+
+      if (!isSuccess) {
+        const state = this.userStatesService.getState(from.id);
+        return this.cannotTransistToStateReply(ctx, state);
+      }
+
+      this.userStatesService.update(from.id, { size: data as Size });
+
+      await ctx.editMessageText(
+        MESSAGES.CHOOSE_OPACITY,
+        this.uiService.opacityKeyboard,
+      );
     } catch (error) {
       this.logger.error(error.message);
       await ctx.reply(MESSAGES.BAD_REQUEST);
@@ -228,35 +228,35 @@ export class TelegrafService implements OnModuleInit, OnModuleDestroy {
   @Bind
   async onOpacity(ctx: Context): Promise<void> {
     try {
-      if ('data' in ctx.callbackQuery) {
-        const { data, from } = ctx.callbackQuery;
-
-        if (!this.userStatesService.hasState(from.id)) {
-          this.logger.error(SYS_MESSAGES.USER_STATE_NOT_FOUND);
-          return this.stateNotFoundReply(ctx);
-        }
-
-        const isSuccess = this.userStatesService.goto(
-          from.id,
-          BOT_STATES.CHOOSE_COLOR,
-        );
-
-        if (!isSuccess) {
-          const state = this.userStatesService.getState(from.id);
-          return this.cannotTransistToStateReply(ctx, state);
-        }
-
-        const [, rawOpacity] = data.split('|');
-
-        this.userStatesService.update(from.id, { opacity: Number(rawOpacity) });
-
-        await ctx.editMessageText(
-          MESSAGES.CHOOSE_COLOR,
-          this.uiService.colorKeyboard,
-        );
-      } else {
+      if (!('data' in ctx.callbackQuery)) {
         throw new Error(SYS_MESSAGES.NO_DATA_ON_CHANGE_SIZE);
       }
+
+      const { data, from } = ctx.callbackQuery;
+
+      if (!this.userStatesService.hasState(from.id)) {
+        this.logger.error(SYS_MESSAGES.USER_STATE_NOT_FOUND);
+        return this.stateNotFoundReply(ctx);
+      }
+
+      const isSuccess = this.userStatesService.goto(
+        from.id,
+        BOT_STATES.CHOOSE_COLOR,
+      );
+
+      if (!isSuccess) {
+        const state = this.userStatesService.getState(from.id);
+        return this.cannotTransistToStateReply(ctx, state);
+      }
+
+      const [, rawOpacity] = data.split('|');
+
+      this.userStatesService.update(from.id, { opacity: Number(rawOpacity) });
+
+      await ctx.editMessageText(
+        MESSAGES.CHOOSE_COLOR,
+        this.uiService.colorKeyboard,
+      );
     } catch (error) {
       this.logger.error(error.message);
       await ctx.reply(MESSAGES.BAD_REQUEST);
@@ -266,32 +266,32 @@ export class TelegrafService implements OnModuleInit, OnModuleDestroy {
   @Bind
   async onColor(ctx: Context): Promise<void> {
     try {
-      if ('data' in ctx.callbackQuery) {
-        const { data, from } = ctx.callbackQuery;
-
-        if (!this.userStatesService.hasState(from.id)) {
-          this.logger.error(SYS_MESSAGES.USER_STATE_NOT_FOUND);
-          return this.stateNotFoundReply(ctx);
-        }
-
-        this.userStatesService.update(from.id, { color: data as Color });
-
-        const selectedOptions = this.userStatesService.getStateData(from.id);
-
-        const bufWithWatermark =
-          await this.watermarkService.createImageWithTextWatermark(
-            selectedOptions,
-          );
-
-        await Promise.all([
-          ctx.editMessageText(MESSAGES.COMPLETE),
-          ctx.replyWithPhoto({ source: bufWithWatermark }),
-        ]);
-
-        this.userStatesService.remove(from.id);
-      } else {
+      if (!('data' in ctx.callbackQuery)) {
         throw new Error(SYS_MESSAGES.NO_DATA_ON_CHANGE_SIZE);
       }
+
+      const { data, from } = ctx.callbackQuery;
+
+      if (!this.userStatesService.hasState(from.id)) {
+        this.logger.error(SYS_MESSAGES.USER_STATE_NOT_FOUND);
+        return this.stateNotFoundReply(ctx);
+      }
+
+      this.userStatesService.update(from.id, { color: data as Color });
+
+      const selectedOptions = this.userStatesService.getStateData(from.id);
+
+      const bufWithWatermark =
+        await this.watermarkService.createImageWithTextWatermark(
+          selectedOptions,
+        );
+
+      await Promise.all([
+        ctx.editMessageText(MESSAGES.COMPLETE),
+        ctx.replyWithPhoto({ source: bufWithWatermark }),
+      ]);
+
+      this.userStatesService.remove(from.id);
     } catch (error) {
       this.logger.error(error.message);
       await ctx.reply(MESSAGES.BAD_REQUEST);
