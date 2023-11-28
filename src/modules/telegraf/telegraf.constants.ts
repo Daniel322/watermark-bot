@@ -21,6 +21,17 @@ export const EMOJI = {
   WHITE_SQUARE: '⬜',
   GLITTER: '✨',
   QUESTION_MARK: '❓',
+  TOP_DOWN_ARROW: '↕️',
+  CYCLE: '🔄',
+  TOP_ARROW: '⬆️',
+  TOP_RIGHT_ARROW: '↗️',
+  RIGHT_ARROW: '➡️',
+  BOTTOM_RIGTH_ARROW: '↘️',
+  BOTTOM_ARROW: '⬇️',
+  BOTTOM_LEFT_ARROW: '↙️',
+  LEFT_ARROW: '⬅️',
+  TOP_LEFT_ARROW: '↖️',
+  RECORD: '⏺️',
 };
 
 export const MESSAGES = <const>{
@@ -40,6 +51,8 @@ export const MESSAGES = <const>{
   CONTINUE_FROM_STATE(state: BotStates): string {
     return `${EMOJI.CROSS} Нельзя выполнить данное действие\nПродолжите с ${BOT_STATES_T[state]} или начните заново с отправки фото`;
   },
+  CHOOSE_POSITION: `${EMOJI.TOP_DOWN_ARROW} Выберите расположение:`,
+  CHOOSE_ROTATION: `${EMOJI.CYCLE} Выберите угол поворота:`,
 };
 
 export const SYS_MESSAGES = <const>{
@@ -60,6 +73,8 @@ export const COMMANDS = <const>{
 
 export const ACTIONS = <const>{
   OPACITY: 'opacity',
+  POSITION: 'positon',
+  ROTATION: 'rotation',
 };
 
 export const COMMANDS_LIST: BotCommand[] = [
@@ -78,6 +93,8 @@ export const BOT_STATES = <const>{
   ADD_TEXT: 'ADD_TEXT',
   ADD_PIC: 'ADD_PIC',
   CHOOSE_WM_TYPE: 'CHOOSE_WM_TYPE',
+  CHOOSE_POSITION: 'CHOOSE_POSITION',
+  CHOOSE_ROTATION: 'CHOOSE_ROTATION',
   CHOOSE_SIZE: 'CHOOSE_SIZE',
   CHOOSE_OPACITY: 'CHOOSE_OPACITY',
   CHOOSE_COLOR: 'CHOOSE_COLOR',

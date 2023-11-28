@@ -29,4 +29,6 @@ export const BOT_STATES_T: Record<keyof typeof BOT_STATES, string> = {
   CHOOSE_SIZE: 'выбора размера',
   CHOOSE_OPACITY: 'выбора прозрачности',
   CHOOSE_COLOR: 'выбора цвета',
+  CHOOSE_POSITION: 'выбора расположения',
+  CHOOSE_ROTATION: 'выбора угла',
 };

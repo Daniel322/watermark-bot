@@ -17,6 +17,7 @@ import { WatermarkService } from '@modules/watermark/watermark.service';
 import {
   COLORS_TYPES,
   Color,
+  PositionType,
   SIZES,
   Size,
   WATERMARK_TYPES,
@@ -80,6 +81,8 @@ export class TelegrafService implements OnModuleInit, OnModuleDestroy {
     this.bot.action(Object.values(WATERMARK_TYPES), this.onPlacementStyle);
     this.bot.action(Object.values(SIZES), this.onSize);
     this.bot.action(new RegExp(ACTIONS.OPACITY), this.onOpacity);
+    this.bot.action(new RegExp(ACTIONS.POSITION), this.onPosition);
+    this.bot.action(new RegExp(ACTIONS.ROTATION), this.onRotation);
   }
 
   @Bind
@@ -118,7 +121,7 @@ export class TelegrafService implements OnModuleInit, OnModuleDestroy {
   }
 
   @Bind
-  async onText(ctx: Context): Promise<void> {
+  onText(ctx: Context): void {
     try {
       if (!('text' in ctx.message)) {
         throw new Error(SYS_MESSAGES.NO_TEXT_IN_MESSAGE);
@@ -143,18 +146,94 @@ export class TelegrafService implements OnModuleInit, OnModuleDestroy {
 
       this.userStatesService.update(from.id, { text });
 
-      await ctx.replyWithMarkdownV2(
+      ctx.replyWithMarkdownV2(
         MESSAGES.CHOOSE_PLACEMENT_STYLE,
         this.uiService.patternTypeKeyboard,
       );
     } catch (error) {
       this.logger.error(error.message);
-      await ctx.reply(MESSAGES.BAD_REQUEST);
+      ctx.reply(MESSAGES.BAD_REQUEST);
     }
   }
 
   @Bind
-  async onPlacementStyle(ctx: Context): Promise<void> {
+  onPlacementStyle(ctx: Context): void {
+    try {
+      if (!('data' in ctx.callbackQuery)) {
+        throw new Error(SYS_MESSAGES.NO_DATA_ON_CHANGE_SIZE);
+      }
+
+      const { data, from } = ctx.callbackQuery;
+
+      if (!this.userStatesService.hasState(from.id)) {
+        this.logger.error(SYS_MESSAGES.USER_STATE_NOT_FOUND);
+        return this.stateNotFoundReply(ctx);
+      }
+
+      const isSuccess = this.userStatesService.goto(
+        from.id,
+        BOT_STATES.CHOOSE_POSITION,
+      );
+
+      if (!isSuccess) {
+        const state = this.userStatesService.getState(from.id);
+        return this.cannotTransistToStateReply(ctx, state);
+      }
+
+      this.userStatesService.update(from.id, { type: data as WatermarkType });
+
+      ctx.editMessageText(
+        MESSAGES.CHOOSE_POSITION,
+        this.uiService.positionKeyboard,
+      );
+    } catch (error) {
+      this.logger.error(error.message);
+      ctx.reply(MESSAGES.BAD_REQUEST);
+    }
+  }
+
+  @Bind
+  onPosition(ctx: Context): void {
+    try {
+      if (!('data' in ctx.callbackQuery)) {
+        throw new Error(SYS_MESSAGES.NO_DATA_ON_CHANGE_SIZE);
+      }
+
+      const { data, from } = ctx.callbackQuery;
+
+      if (!this.userStatesService.hasState(from.id)) {
+        this.logger.error(SYS_MESSAGES.USER_STATE_NOT_FOUND);
+        return this.stateNotFoundReply(ctx);
+      }
+
+      const isSuccess = this.userStatesService.goto(
+        from.id,
+        BOT_STATES.CHOOSE_ROTATION,
+      );
+
+      if (!isSuccess) {
+        const state = this.userStatesService.getState(from.id);
+        return this.cannotTransistToStateReply(ctx, state);
+      }
+
+      const [, position] = data.split('|') as [string, PositionType];
+
+      this.userStatesService.update(from.id, {
+        position,
+      });
+
+      ctx.editMessageText(
+        MESSAGES.CHOOSE_ROTATION,
+        this.uiService.rotationKeyboard,
+      );
+    } catch (error) {
+      this.logger.error(error.message);
+      ctx.reply(MESSAGES.BAD_REQUEST);
+    }
+  }
+
+  @Bind
+  onRotation(ctx: Context): void {
     try {
       if (!('data' in ctx.callbackQuery)) {
         throw new Error(SYS_MESSAGES.NO_DATA_ON_CHANGE_SIZE);
@@ -176,21 +255,21 @@ export class TelegrafService implements OnModuleInit, OnModuleDestroy {
         const state = this.userStatesService.getState(from.id);
         return this.cannotTransistToStateReply(ctx, state);
       }
+      const [, rawAngle] = data.split('|') as [string, PositionType];
 
-      this.userStatesService.update(from.id, { type: data as WatermarkType });
+      this.userStatesService.update(from.id, {
+        rotate: Number(rawAngle),
+      });
 
-      await ctx.editMessageText(
-        MESSAGES.CHOOSE_SIZE,
-        this.uiService.sizeKeyboard,
-      );
+      ctx.editMessageText(MESSAGES.CHOOSE_SIZE, this.uiService.sizeKeyboard);
     } catch (error) {
       this.logger.error(error.message);
-      await ctx.reply(MESSAGES.BAD_REQUEST);
+      ctx.reply(MESSAGES.BAD_REQUEST);
     }
   }
 
   @Bind
-  async onSize(ctx: Context): Promise<void> {
+  onSize(ctx: Context): void {
     try {
       if (!('data' in ctx.callbackQuery)) {
         throw new Error(SYS_MESSAGES.NO_DATA_ON_CHANGE_SIZE);
@@ -215,18 +294,18 @@ export class TelegrafService implements OnModuleInit, OnModuleDestroy {
 
       this.userStatesService.update(from.id, { size: data as Size });
 
-      await ctx.editMessageText(
+      ctx.editMessageText(
         MESSAGES.CHOOSE_OPACITY,
         this.uiService.opacityKeyboard,
       );
     } catch (error) {
       this.logger.error(error.message);
-      await ctx.reply(MESSAGES.BAD_REQUEST);
+      ctx.reply(MESSAGES.BAD_REQUEST);
     }
   }
 
   @Bind
-  async onOpacity(ctx: Context): Promise<void> {
+  onOpacity(ctx: Context): void {
     try {
       if (!('data' in ctx.callbackQuery)) {
         throw new Error(SYS_MESSAGES.NO_DATA_ON_CHANGE_SIZE);
@@ -253,13 +332,10 @@ export class TelegrafService implements OnModuleInit, OnModuleDestroy {
 
       this.userStatesService.update(from.id, { opacity: Number(rawOpacity) });
 
-      await ctx.editMessageText(
-        MESSAGES.CHOOSE_COLOR,
-        this.uiService.colorKeyboard,
-      );
+      ctx.editMessageText(MESSAGES.CHOOSE_COLOR, this.uiService.colorKeyboard);
     } catch (error) {
       this.logger.error(error.message);
-      await ctx.reply(MESSAGES.BAD_REQUEST);
+      ctx.reply(MESSAGES.BAD_REQUEST);
     }
   }
 

@@ -3,12 +3,13 @@ import { Markup } from 'telegraf';
 
 import {
   COLORS_TYPES,
+  POSITION_TYPES,
   SIZES,
   WATERMARK_TYPES,
 } from '@modules/watermark/watermark.types';
 
 import { COLORS_T, SIZES_T, WATERMARK_TYPES_T } from './telegraf.translations';
-import { ACTIONS } from './telegraf.constants';
+import { ACTIONS, EMOJI } from './telegraf.constants';
 
 @Injectable()
 export class TelegrafUiServuce {
@@ -58,5 +59,61 @@ export class TelegrafUiServuce {
     }
 
     return Markup.inlineKeyboard(buttons);
+  }
+
+  get positionKeyboard() {
+    return Markup.inlineKeyboard([
+      [
+        Markup.button.callback(
+          EMOJI.TOP_LEFT_ARROW,
+          `${ACTIONS.POSITION}|${POSITION_TYPES.topLeft}`,
+        ),
+        Markup.button.callback(
+          EMOJI.TOP_ARROW,
+          `${ACTIONS.POSITION}|${POSITION_TYPES.topCenter}`,
+        ),
+        Markup.button.callback(
+          EMOJI.TOP_RIGHT_ARROW,
+          `${ACTIONS.POSITION}|${POSITION_TYPES.topRight}`,
+        ),
+      ],
+      [
+        Markup.button.callback(
+          EMOJI.LEFT_ARROW,
+          `${ACTIONS.POSITION}|${POSITION_TYPES.centerLeft}`,
+        ),
+        Markup.button.callback(
+          EMOJI.RECORD,
+          `${ACTIONS.POSITION}|${POSITION_TYPES.centerCenter}`,
+        ),
+        Markup.button.callback(
+          EMOJI.RIGHT_ARROW,
+          `${ACTIONS.POSITION}|${POSITION_TYPES.centerRight}`,
+        ),
+      ],
+      [
+        Markup.button.callback(
+          EMOJI.BOTTOM_LEFT_ARROW,
+          `${ACTIONS.POSITION}|${POSITION_TYPES.bottomLeft}`,
+        ),
+        Markup.button.callback(
+          EMOJI.BOTTOM_ARROW,
+          `${ACTIONS.POSITION}|${POSITION_TYPES.bottomCenter}`,
+        ),
+        Markup.button.callback(
+          EMOJI.BOTTOM_RIGTH_ARROW,
+          `${ACTIONS.POSITION}|${POSITION_TYPES.bottomRight}`,
+        ),
+      ],
+    ]);
+  }
+
+  get rotationKeyboard() {
+    return Markup.inlineKeyboard([
+      [
+        Markup.button.callback('-45%', 'rotation|-45'),
+        Markup.button.callback('45%', 'rotation|45'),
+      ],
+    ]);
   }
 }
