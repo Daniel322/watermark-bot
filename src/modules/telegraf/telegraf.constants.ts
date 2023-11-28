@@ -52,7 +52,8 @@ export const MESSAGES = <const>{
     return `${EMOJI.CROSS} Нельзя выполнить данное действие\nПродолжите с ${BOT_STATES_T[state]} или начните заново с отправки фото`;
   },
   CHOOSE_POSITION: `${EMOJI.TOP_DOWN_ARROW} Выберите расположение:`,
-  CHOOSE_ROTATION: `${EMOJI.CYCLE} Выберите угол поворота:`,
+  CHOOSE_ROTATION: `${EMOJI.CYCLE} Введите угол поворота в градусах:`,
+  ROTATION_PARSE_ERROR: `${EMOJI.CROSS} Невозможно обработать входные данные. Введите число:`,
 };
 
 export const SYS_MESSAGES = <const>{
@@ -65,6 +66,7 @@ export const SYS_MESSAGES = <const>{
   UNKNOWN_ACTION: 'UNKNOWN_ACTION',
   NO_DATA_ON_CHANGE_SIZE: 'NO_DATA_ON_CHANGE_SIZE',
   USER_STATE_NOT_FOUND: 'USER_STATE_NOT_FOUND',
+  WRONG_STATE_ON_TEXT: 'WRONG_STATE_ON_TEXT',
 };
 
 export const COMMANDS = <const>{

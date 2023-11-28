@@ -82,7 +82,6 @@ export class TelegrafService implements OnModuleInit, OnModuleDestroy {
     this.bot.action(Object.values(SIZES), this.onSize);
     this.bot.action(new RegExp(ACTIONS.OPACITY), this.onOpacity);
     this.bot.action(new RegExp(ACTIONS.POSITION), this.onPosition);
-    this.bot.action(new RegExp(ACTIONS.ROTATION), this.onRotation);
   }
 
   @Bind
@@ -134,25 +133,61 @@ export class TelegrafService implements OnModuleInit, OnModuleDestroy {
         return this.stateNotFoundReply(ctx);
       }
 
-      const isSuccess = this.userStatesService.goto(
-        from.id,
-        BOT_STATES.CHOOSE_WM_TYPE,
-      );
+      const state = this.userStatesService.getState(from.id);
 
-      if (!isSuccess) {
-        const state = this.userStatesService.getState(from.id);
-        return this.cannotTransistToStateReply(ctx, state);
+      if (state === BOT_STATES.ADD_TEXT) {
+        return this.onWatermarkText(ctx, from.id, text);
+      }
+      if (state === BOT_STATES.CHOOSE_ROTATION) {
+        return this.onRotationText(ctx, from.id, text);
       }
 
-      this.userStatesService.update(from.id, { text });
-
-      ctx.replyWithMarkdownV2(
-        MESSAGES.CHOOSE_PLACEMENT_STYLE,
-        this.uiService.patternTypeKeyboard,
-      );
+      throw new Error(SYS_MESSAGES.WRONG_STATE_ON_TEXT);
     } catch (error) {
       this.logger.error(error.message);
       ctx.reply(MESSAGES.BAD_REQUEST);
+    }
+  }
+
+  onWatermarkText(ctx, id: number, text: string): void {
+    const isSuccess = this.userStatesService.goto(
+      id,
+      BOT_STATES.CHOOSE_WM_TYPE,
+    );
+
+    if (!isSuccess) {
+      const state = this.userStatesService.getState(id);
+      return this.cannotTransistToStateReply(ctx, state);
+    }
+
+    this.userStatesService.update(id, { text });
+
+    ctx.replyWithMarkdownV2(
+      MESSAGES.CHOOSE_PLACEMENT_STYLE,
+      this.uiService.patternTypeKeyboard,
+    );
+  }
+
+  onRotationText(ctx, id: number, text: string): void {
+    const rotate = Number(text);
+    if (Number.isNaN(rotate)) {
+      ctx.reply(MESSAGES.ROTATION_PARSE_ERROR);
+    } else {
+      const isSuccess = this.userStatesService.goto(id, BOT_STATES.CHOOSE_SIZE);
+
+      if (!isSuccess) {
+        const state = this.userStatesService.getState(id);
+        return this.cannotTransistToStateReply(ctx, state);
+      }
+
+      this.userStatesService.update(id, {
+        rotate,
+      });
+
+      ctx.replyWithMarkdownV2(
+        MESSAGES.CHOOSE_SIZE,
+        this.uiService.sizeKeyboard,
+      );
     }
   }
 
@@ -222,46 +257,7 @@ export class TelegrafService implements OnModuleInit, OnModuleDestroy {
         position,
       });
 
-      ctx.editMessageText(
-        MESSAGES.CHOOSE_ROTATION,
-        this.uiService.rotationKeyboard,
-      );
-    } catch (error) {
-      this.logger.error(error.message);
-      ctx.reply(MESSAGES.BAD_REQUEST);
-    }
-  }
-
-  @Bind
-  onRotation(ctx: Context): void {
-    try {
-      if (!('data' in ctx.callbackQuery)) {
-        throw new Error(SYS_MESSAGES.NO_DATA_ON_CHANGE_SIZE);
-      }
-
-      const { data, from } = ctx.callbackQuery;
-
-      if (!this.userStatesService.hasState(from.id)) {
-        this.logger.error(SYS_MESSAGES.USER_STATE_NOT_FOUND);
-        return this.stateNotFoundReply(ctx);
-      }
-
-      const isSuccess = this.userStatesService.goto(
-        from.id,
-        BOT_STATES.CHOOSE_SIZE,
-      );
-
-      if (!isSuccess) {
-        const state = this.userStatesService.getState(from.id);
-        return this.cannotTransistToStateReply(ctx, state);
-      }
-      const [, rawAngle] = data.split('|') as [string, PositionType];
-
-      this.userStatesService.update(from.id, {
-        rotate: Number(rawAngle),
-      });
-
-      ctx.editMessageText(MESSAGES.CHOOSE_SIZE, this.uiService.sizeKeyboard);
+      ctx.editMessageText(MESSAGES.CHOOSE_ROTATION);
     } catch (error) {
       this.logger.error(error.message);
       ctx.reply(MESSAGES.BAD_REQUEST);

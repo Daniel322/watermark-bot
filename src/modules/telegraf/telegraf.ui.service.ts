@@ -107,13 +107,4 @@ export class TelegrafUiServuce {
       ],
     ]);
   }
-
-  get rotationKeyboard() {
-    return Markup.inlineKeyboard([
-      [
-        Markup.button.callback('-45%', 'rotation|-45'),
-        Markup.button.callback('45%', 'rotation|45'),
-      ],
-    ]);
-  }
 }
