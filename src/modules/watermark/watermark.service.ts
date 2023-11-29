@@ -82,19 +82,29 @@ export class WatermarkService {
 
     const { x, y } = DICTIONARY[size];
 
-    const { translateX, translateY } = this.generateTransformTextValues(rotate);
-
     const svg = `
-      <svg width="${imageWidth}" height="${imageHeight}" style="border:2px solid red">
-      <rect x="0" y="0" width="${imageWidth}" height="${imageHeight}" style="fill:blue; stroke:pink; stroke-width:5; fill-opacity:0.1; stroke-opacity:0.9;" />
+      <svg
+        width="${imageWidth}"
+        height="${imageHeight}"
+        style="transform-box: fill-box;transform-origin: center;transform: rotate(${rotate});"
+        fill="rgb(255, 255, 255)"
+      >
       <style>
       .title { fill: rgba(${COLORS[color]}, ${opacity});
       font-size: ${fontSize}px;
       font-weight: bold;
-      textAlign: left;
-      transform: rotate(${rotate}) translate(${translateX}, ${translateY});
+      text-align: left;
     }
       </style>
+      <defs>
+      <filter x="0" y="0" width="1" height="1" id="solid">
+        <feFlood flood-color="yellow" result="bg" />
+        <feMerge>
+          <feMergeNode in="bg"/>
+          <feMergeNode in="SourceGraphic"/>
+        </feMerge>
+      </filter>
+    </defs>
       <text x="${this.getCoordUtil(
         x,
         WATERMARK_TYPES.single,
@@ -103,7 +113,7 @@ export class WatermarkService {
         y,
         WATERMARK_TYPES.single,
         position,
-      )}%" text-anchor="start" class="title">${text}</text>
+      )}%" text-anchor="start" filter="url(#solid)" class="title">${text}</text>
       </svg>
     `;
 
@@ -179,19 +189,5 @@ export class WatermarkService {
     return type === WATERMARK_TYPES.pattern
       ? value[type]
       : value[type][position];
-  }
-
-  generateTransformTextValues(rotate: number): TransformValues {
-    if (rotate >= 0) {
-      return {
-        translateX: rotate > 10 ? rotate - 10 : 0,
-        translateY: 0,
-      };
-    } else {
-      return {
-        translateX: 0,
-        translateY: rotate <= -10 ? -(rotate * 2) : 0,
-      };
-    }
   }
 }
