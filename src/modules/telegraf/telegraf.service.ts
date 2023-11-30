@@ -229,9 +229,7 @@ export class TelegrafService implements OnModuleInit, OnModuleDestroy {
         return this.stateNotFoundReply(ctx);
       }
 
-      if (
-        !this.tryTransistToGivenState(ctx, from.id, BOT_STATES.CHOOSE_ROTATION)
-      ) {
+      if (!this.tryTransistToGivenState(ctx, from.id, BOT_STATES.CHOOSE_SIZE)) {
         return;
       }
 
@@ -241,7 +239,7 @@ export class TelegrafService implements OnModuleInit, OnModuleDestroy {
         position,
       });
 
-      ctx.editMessageText(MESSAGES.CHOOSE_ROTATION);
+      ctx.editMessageText(MESSAGES.CHOOSE_SIZE, this.uiService.sizeKeyboard);
     } catch (error) {
       this.logger.error(error.message);
       ctx.reply(MESSAGES.BAD_REQUEST);

@@ -84,6 +84,7 @@ const makeTelegrafUserStateServiceMock = () => ({
   update: jest.fn(),
   getStateData: jest.fn(),
   goto: jest.fn(),
+  remove: jest.fn(),
 });
 
 describe('TelegrafService', () => {
@@ -381,7 +382,7 @@ describe('TelegrafService', () => {
       expect(service.onPosition(ctx)).toBeUndefined();
     });
 
-    it('Should reply with CHOOSE_ROTATION if it transist to given state', () => {
+    it('Should reply with CHOOSE_SIZE if it transist to given state', () => {
       const ctx = makeTelegrafMockContext({
         callback_query: { data: 'test', from: { id: Date.now() } },
       });
@@ -391,7 +392,8 @@ describe('TelegrafService', () => {
       service.onPosition(ctx);
 
       expect(ctx.editMessageText).toHaveBeenCalledWith(
-        MESSAGES.CHOOSE_ROTATION,
+        MESSAGES.CHOOSE_SIZE,
+        telegrafUiServuce.sizeKeyboard,
       );
     });
   });
