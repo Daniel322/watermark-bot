@@ -15,7 +15,6 @@ import { TELEGRAF_TOKEN } from './telegraf.provider';
 import {
   ACTIONS,
   BOT_STATES,
-  COMMANDS,
   COMMANDS_LIST,
   MESSAGES,
   SYS_MESSAGES,
