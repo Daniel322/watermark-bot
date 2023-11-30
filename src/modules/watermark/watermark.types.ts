@@ -48,6 +48,17 @@ export type GenerateTextWatermarkProps = {
   rotate?: number;
 };
 
+export type GenerateRotateArgsKeys =
+  | 'rotate'
+  | 'position'
+  | 'imageWidth'
+  | 'imageHeight';
+
+export type GenerateRotateArgsProps = Pick<
+  GenerateTextWatermarkProps,
+  GenerateRotateArgsKeys
+>;
+
 export type SetTextWatermarkProps = {
   file: Buffer;
   text: string;
