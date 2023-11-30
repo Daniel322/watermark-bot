@@ -4,6 +4,7 @@ import {
   OnModuleDestroy,
   OnModuleInit,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 
 import { BotStateMachine } from './telegraf.state-machine';
 import { BOT_STATES, SYS_MESSAGES } from './telegraf.constants';
@@ -13,9 +14,9 @@ import { BotStates, SelectedOptions } from './telegraf.types';
 export class TelegrafUsersStatesService
   implements OnModuleInit, OnModuleDestroy
 {
-  static GC_TIMER = 1000 * 60; // 1 min
+  private readonly GC_TIMER: number;
 
-  static FMS_INACTIVE_TIME = 1000 * 60; // 10 min
+  private readonly FMS_INACTIVE_TIME: number;
 
   private readonly logger = new Logger(TelegrafUsersStatesService.name);
 
@@ -23,10 +24,15 @@ export class TelegrafUsersStatesService
 
   private _intervalId: number;
 
-  constructor() {}
+  constructor(private readonly configService: ConfigService) {
+    const { gcTimer, fmsInactiveTime } =
+      this.configService.get('userStateManager');
+    this.GC_TIMER = gcTimer;
+    this.FMS_INACTIVE_TIME = fmsInactiveTime;
+  }
 
   onModuleInit(): void {
-    setInterval(this.gc.bind(this), TelegrafUsersStatesService.GC_TIMER);
+    setInterval(this.gc.bind(this), this.GC_TIMER);
   }
 
   onModuleDestroy(): void {
@@ -36,7 +42,7 @@ export class TelegrafUsersStatesService
   private gc(): void {
     const now = Date.now();
     for (const [id, fms] of this._fsms) {
-      if (now - fms.updatedAt >= TelegrafUsersStatesService.GC_TIMER) {
+      if (now - fms.updatedAt >= this.FMS_INACTIVE_TIME) {
         this.remove(id);
       }
     }

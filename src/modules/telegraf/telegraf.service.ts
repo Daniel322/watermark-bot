@@ -11,6 +11,7 @@ import { Telegraf, type Context } from 'telegraf';
 import { message } from 'telegraf/filters';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
+import { User } from '@telegraf/types';
 
 import { Bind } from '@common/decorators';
 import { WatermarkService } from '@modules/watermark/watermark.service';
@@ -150,14 +151,8 @@ export class TelegrafService implements OnModuleInit, OnModuleDestroy {
   }
 
   onWatermarkText(ctx, id: number, text: string): void {
-    const isSuccess = this.userStatesService.goto(
-      id,
-      BOT_STATES.CHOOSE_WM_TYPE,
-    );
-
-    if (!isSuccess) {
-      const state = this.userStatesService.getState(id);
-      return this.cannotTransistToStateReply(ctx, state);
+    if (!this.tryTransistToGivenState(ctx, id, BOT_STATES.CHOOSE_WM_TYPE)) {
+      return;
     }
 
     this.userStatesService.update(id, { text });
@@ -173,11 +168,8 @@ export class TelegrafService implements OnModuleInit, OnModuleDestroy {
     if (Number.isNaN(rotate)) {
       ctx.reply(MESSAGES.ROTATION_PARSE_ERROR);
     } else {
-      const isSuccess = this.userStatesService.goto(id, BOT_STATES.CHOOSE_SIZE);
-
-      if (!isSuccess) {
-        const state = this.userStatesService.getState(id);
-        return this.cannotTransistToStateReply(ctx, state);
+      if (!this.tryTransistToGivenState(ctx, id, BOT_STATES.CHOOSE_SIZE)) {
+        return;
       }
 
       this.userStatesService.update(id, {
@@ -205,14 +197,10 @@ export class TelegrafService implements OnModuleInit, OnModuleDestroy {
         return this.stateNotFoundReply(ctx);
       }
 
-      const isSuccess = this.userStatesService.goto(
-        from.id,
-        BOT_STATES.CHOOSE_POSITION,
-      );
-
-      if (!isSuccess) {
-        const state = this.userStatesService.getState(from.id);
-        return this.cannotTransistToStateReply(ctx, state);
+      if (
+        !this.tryTransistToGivenState(ctx, from.id, BOT_STATES.CHOOSE_POSITION)
+      ) {
+        return;
       }
 
       this.userStatesService.update(from.id, { type: data as WatermarkType });
@@ -241,14 +229,10 @@ export class TelegrafService implements OnModuleInit, OnModuleDestroy {
         return this.stateNotFoundReply(ctx);
       }
 
-      const isSuccess = this.userStatesService.goto(
-        from.id,
-        BOT_STATES.CHOOSE_ROTATION,
-      );
-
-      if (!isSuccess) {
-        const state = this.userStatesService.getState(from.id);
-        return this.cannotTransistToStateReply(ctx, state);
+      if (
+        !this.tryTransistToGivenState(ctx, from.id, BOT_STATES.CHOOSE_ROTATION)
+      ) {
+        return;
       }
 
       const [, position] = data.split('|') as [string, PositionType];
@@ -278,14 +262,10 @@ export class TelegrafService implements OnModuleInit, OnModuleDestroy {
         return this.stateNotFoundReply(ctx);
       }
 
-      const isSuccess = this.userStatesService.goto(
-        from.id,
-        BOT_STATES.CHOOSE_OPACITY,
-      );
-
-      if (!isSuccess) {
-        const state = this.userStatesService.getState(from.id);
-        return this.cannotTransistToStateReply(ctx, state);
+      if (
+        !this.tryTransistToGivenState(ctx, from.id, BOT_STATES.CHOOSE_OPACITY)
+      ) {
+        return;
       }
 
       this.userStatesService.update(from.id, { size: data as Size });
@@ -314,14 +294,10 @@ export class TelegrafService implements OnModuleInit, OnModuleDestroy {
         return this.stateNotFoundReply(ctx);
       }
 
-      const isSuccess = this.userStatesService.goto(
-        from.id,
-        BOT_STATES.CHOOSE_COLOR,
-      );
-
-      if (!isSuccess) {
-        const state = this.userStatesService.getState(from.id);
-        return this.cannotTransistToStateReply(ctx, state);
+      if (
+        !this.tryTransistToGivenState(ctx, from.id, BOT_STATES.CHOOSE_COLOR)
+      ) {
+        return;
       }
 
       const [, rawOpacity] = data.split('|');
@@ -391,11 +367,31 @@ export class TelegrafService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  stateNotFoundReply(ctx: Context): void {
-    ctx.reply(MESSAGES.USER_STATE_NOT_FOUND);
+  tryTransistToGivenState(
+    ctx: Context,
+    id: User['id'],
+    state: BotStates,
+  ): boolean {
+    const isSuccess = this.userStatesService.goto(id, state);
+
+    if (!isSuccess) {
+      const state = this.userStatesService.getState(id);
+      if (ctx.callbackQuery != null) {
+        ctx.editMessageText(MESSAGES.CONTINUE_FROM_STATE(state));
+      } else {
+        ctx.reply(MESSAGES.CONTINUE_FROM_STATE(state));
+      }
+      return false;
+    }
+
+    return true;
   }
 
-  cannotTransistToStateReply(ctx: Context, state: BotStates): void {
-    ctx.reply(MESSAGES.CONTINUE_FROM_STATE(state));
+  stateNotFoundReply(ctx: Context): void {
+    if (ctx.callbackQuery != null) {
+      ctx.editMessageText(MESSAGES.USER_STATE_NOT_FOUND);
+    } else {
+      ctx.reply(MESSAGES.USER_STATE_NOT_FOUND);
+    }
   }
 }
