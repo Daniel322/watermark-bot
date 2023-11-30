@@ -51,6 +51,7 @@ const makeTelegrafMockContext = (update = {}) => {
   );
   ctx.reply = jest.fn();
   ctx.replyWithPhoto = jest.fn();
+  ctx.replyWithMarkdownV2 = jest.fn();
   ctx.editMessageText = jest.fn();
   return ctx;
 };
@@ -72,12 +73,18 @@ const makeHttpServiceMock = () => new HttpService();
 
 const makeTelefrafUiServiceMock = () => ({
   patternTypeKeyboard: ['1', '2'],
+  sizeKeyboard: ['1', '2'],
+  positionKeyboard: ['1', '2'],
+  opacityKeyboard: ['1', '2'],
+  colorKeyboard: ['1', '2'],
 });
 
 const makeTelegrafUserStateServiceMock = () => ({
   hasState: jest.fn(),
   getState: jest.fn(),
   update: jest.fn(),
+  getStateData: jest.fn(),
+  goto: jest.fn(),
 });
 
 describe('TelegrafService', () => {
@@ -290,9 +297,8 @@ describe('TelegrafService', () => {
       expect(service.onWatermarkText(ctx, 1, 'test')).toBeUndefined();
     });
 
-    it('Should reply with if it transist to given state', () => {
+    it('Should reply with CHOOSE_PLACEMENT_STYLE if it transist to given state', () => {
       const ctx = makeTelegrafMockContext();
-      ctx.replyWithMarkdownV2 = jest.fn();
       service.tryTransistToGivenState = jest.fn(() => true);
 
       service.onWatermarkText(ctx, 1, 'test');
@@ -304,165 +310,285 @@ describe('TelegrafService', () => {
     });
   });
 
-  // describe('onPhoto', () => {
-  //   it('Should reply with BAD_REQUEST message if "photo" is not in message', async () => {
-  //     const ctx = makeTelegrafMockContext({ message: {} });
-  //     await service.onPhoto(ctx);
-  //     expect(ctx.reply).toHaveBeenCalledWith(MESSAGES.BAD_REQUEST);
-  //   });
+  describe('onRotationText', () => {
+    it('Should reply with ROTATION_PARSE_ERROR if given text is not a number', () => {
+      const ctx = makeTelegrafMockContext();
+      service.onRotationText(ctx, 1, 'test');
+      expect(ctx.reply).toHaveBeenCalledWith(MESSAGES.ROTATION_PARSE_ERROR);
+    });
 
-  //   it('Should reply with BAD_REQUEST message if "photo" is empty', async () => {
-  //     const ctx = makeTelegrafMockContext({ message: { photo: [] } });
-  //     await service.onPhoto(ctx);
-  //     expect(ctx.reply).toHaveBeenCalledWith(MESSAGES.BAD_REQUEST);
-  //   });
+    it('Should return undefined if could not transist to the given state', () => {
+      const ctx = makeTelegrafMockContext();
+      service.tryTransistToGivenState = jest.fn(() => false);
+      expect(service.onRotationText(ctx, 1, '1')).toBeUndefined();
+    });
 
-  //   it('Should set file buffer with user id to cache manager', async () => {
-  //     const ctxData = {
-  //       message: {
-  //         photo: [
-  //           {
-  //             file_id: String(Date.now()),
-  //           },
-  //         ],
-  //         from: {
-  //           id: Date.now(),
-  //         },
-  //       },
-  //     };
-  //     const ctx = makeTelegrafMockContext(ctxData);
-  //     const buf = Buffer.alloc(10);
-  //     buf.fill('A');
+    it('Should reply with CHOOSE_SIZE if it transist to given state', () => {
+      const ctx = makeTelegrafMockContext();
+      service.tryTransistToGivenState = jest.fn(() => true);
 
-  //     service.getFile = () => Promise.resolve(buf.buffer);
-  //     await service.onPhoto(ctx);
+      service.onRotationText(ctx, 1, '1');
 
-  //     const cacheVal = cacheManager.get(String(ctxData.message.from.id));
-  //     expect(cacheVal).toBe(buf.buffer);
-  //   });
-  // });
+      expect(ctx.replyWithMarkdownV2).toHaveBeenCalledWith(
+        MESSAGES.CHOOSE_SIZE,
+        telegrafUiServuce.patternTypeKeyboard,
+      );
+    });
+  });
 
-  // it('Should reply with ASK_TEXT', async () => {
-  //   const ctxData = {
-  //     message: {
-  //       photo: [
-  //         {
-  //           file_id: String(Date.now()),
-  //         },
-  //       ],
-  //       from: {
-  //         id: Date.now(),
-  //       },
-  //     },
-  //   };
-  //   const ctx = makeTelegrafMockContext(ctxData);
-  //   const buf = Buffer.alloc(10);
-  //   buf.fill('A');
+  describe('onPlacementStyle', () => {
+    it('Should reply with BAD_REQUEST message if "data" is not in callbackQuery', () => {
+      const ctx = makeTelegrafMockContext({ callback_query: {} });
+      service.onPlacementStyle(ctx);
+      expect(ctx.reply).toHaveBeenCalledWith(MESSAGES.BAD_REQUEST);
+    });
 
-  //   service.getFile = () => Promise.resolve(buf.buffer);
-  //   await service.onPhoto(ctx);
+    it('Should return undefined if could not transist to the given state', () => {
+      const ctx = makeTelegrafMockContext({
+        callback_query: { data: '1', from: { id: Date.now() } },
+      });
+      telegrafUsersStatesService.hasState = jest.fn(() => false);
+      expect(service.onPlacementStyle(ctx)).toBeUndefined();
+    });
 
-  //   expect(ctx.reply).toHaveBeenCalledWith(MESSAGES.ASK_TEXT);
-  // });
+    it('Should reply with CHOOSE_POSITION if it transist to given state', () => {
+      const ctx = makeTelegrafMockContext({
+        callback_query: { data: 'test', from: { id: Date.now() } },
+      });
+      service.tryTransistToGivenState = jest.fn(() => true);
+      telegrafUsersStatesService.hasState = jest.fn(() => true);
 
-  // describe('getFile', () => {
-  //   it('Should return ArrayBuffer', async () => {
-  //     const arrayBuffer = new ArrayBuffer(10);
-  //     httpService.get = () =>
-  //       new Observable((sub) => {
-  //         sub.next({ data: arrayBuffer } as AxiosResponse);
-  //       });
-  //     const result = await service.getFile('http://localhost');
-  //     expect(result).toBe(arrayBuffer);
-  //   });
+      service.onPlacementStyle(ctx);
 
-  //   it('Should throw FILE_REQUEST_ERROR in case request was failed', async () => {
-  //     try {
-  //       httpService.get = () =>
-  //         new Observable((sub) => {
-  //           sub.error(SYS_MESSAGES.FILE_REQUEST_ERROR);
-  //         });
-  //       await service.getFile('http://localhost');
-  //       expect(true).toBe(false);
-  //     } catch (error) {
-  //       expect(error.message).toBe(SYS_MESSAGES.FILE_REQUEST_ERROR);
-  //     }
-  //   });
-  // });
+      expect(ctx.editMessageText).toHaveBeenCalledWith(
+        MESSAGES.CHOOSE_POSITION,
+        telegrafUiServuce.positionKeyboard,
+      );
+    });
+  });
 
-  // describe('onSize', () => {
-  //   it('Should reply with BAD_REQUEST if data is not in cb query', () => {
-  //     const ctx = makeTelegrafMockContext({ callback_query: {} });
-  //     service.onSize(ctx);
-  //     expect(ctx.reply).toHaveBeenCalledWith(MESSAGES.BAD_REQUEST);
-  //   });
-  //   it('Should edit message with value given from sizeInlineKeyboard on ui service', () => {
-  //     const ctx = makeTelegrafMockContext({ callback_query: { data: 'l' } });
+  describe('onPosition', () => {
+    it('Should reply with BAD_REQUEST message if "data" is not in callbackQuery', () => {
+      const ctx = makeTelegrafMockContext({ callback_query: {} });
+      service.onPosition(ctx);
+      expect(ctx.reply).toHaveBeenCalledWith(MESSAGES.BAD_REQUEST);
+    });
 
-  //     service.onSize(ctx);
+    it('Should return undefined if could not transist to the given state', () => {
+      const ctx = makeTelegrafMockContext({
+        callback_query: { data: '1', from: { id: Date.now() } },
+      });
+      telegrafUsersStatesService.hasState = jest.fn(() => false);
+      expect(service.onPosition(ctx)).toBeUndefined();
+    });
 
-  //     expect(ctx.editMessageText).toHaveBeenCalledWith(
-  //       MESSAGES.CHANGE_SIZE,
-  //       telegrafUiServuce.sizeInlineKeyboard,
-  //     );
-  //   });
-  // });
+    it('Should reply with CHOOSE_ROTATION if it transist to given state', () => {
+      const ctx = makeTelegrafMockContext({
+        callback_query: { data: 'test', from: { id: Date.now() } },
+      });
+      service.tryTransistToGivenState = jest.fn(() => true);
+      telegrafUsersStatesService.hasState = jest.fn(() => true);
 
-  // describe('onSettings', () => {
-  // it('Should edit message to a settings keyboard if "command" is not in ctx', () => {
-  //   const ctx = makeTelegrafMockContext();
+      service.onPosition(ctx);
 
-  //   service.onSettings(ctx);
+      expect(ctx.editMessageText).toHaveBeenCalledWith(
+        MESSAGES.CHOOSE_ROTATION,
+      );
+    });
+  });
 
-  //   expect(ctx.editMessageText).toHaveBeenCalledWith(
-  //     MESSAGES.CHANGE_SETTINGS,
-  //     telegrafUiServuce.settingsInlineKeyboard,
-  //   );
-  // });
+  describe('onSize', () => {
+    it('Should reply with BAD_REQUEST message if "data" is not in callbackQuery', () => {
+      const ctx = makeTelegrafMockContext({ callback_query: {} });
+      service.onSize(ctx);
+      expect(ctx.reply).toHaveBeenCalledWith(MESSAGES.BAD_REQUEST);
+    });
 
-  // it('Should reply with mardown of settings keyboard if "command" is in ctx', () => {
-  //   const ctx = makeTelegrafMockContext({ command: COMMANDS.SETTINGS });
-  //   Object.assign(ctx, { command: COMMANDS.SETTINGS });
+    it('Should return undefined if could not transist to the given state', () => {
+      const ctx = makeTelegrafMockContext({
+        callback_query: { data: '1', from: { id: Date.now() } },
+      });
+      telegrafUsersStatesService.hasState = jest.fn(() => false);
+      expect(service.onSize(ctx)).toBeUndefined();
+    });
 
-  //   ctx.replyWithMarkdownV2 = jest.fn();
+    it('Should reply with CHOOSE_OPACITY if it transist to given state', () => {
+      const ctx = makeTelegrafMockContext({
+        callback_query: { data: 'test', from: { id: Date.now() } },
+      });
+      service.tryTransistToGivenState = jest.fn(() => true);
+      telegrafUsersStatesService.hasState = jest.fn(() => true);
 
-  //   service.onSettings(ctx);
+      service.onSize(ctx);
 
-  //   expect(ctx.replyWithMarkdownV2).toHaveBeenCalledWith(
-  //     MESSAGES.CHANGE_SETTINGS,
-  //     telegrafUiServuce.settingsInlineKeyboard,
-  //   );
-  // });
-  // });
+      expect(ctx.editMessageText).toHaveBeenCalledWith(
+        MESSAGES.CHOOSE_OPACITY,
+        telegrafUiServuce.opacityKeyboard,
+      );
+    });
+  });
 
-  // describe('onChangeSizeSettings', () => {
-  //   it('Should reply with BAD_REQUEST if data is not in cb query', () => {
-  //     const ctx = makeTelegrafMockContext({ callback_query: {} });
-  //     service.onSize(ctx);
-  //     expect(ctx.reply).toHaveBeenCalledWith(MESSAGES.BAD_REQUEST);
-  //   });
+  describe('onOpacity', () => {
+    it('Should reply with BAD_REQUEST message if "data" is not in callbackQuery', () => {
+      const ctx = makeTelegrafMockContext({ callback_query: {} });
+      service.onOpacity(ctx);
+      expect(ctx.reply).toHaveBeenCalledWith(MESSAGES.BAD_REQUEST);
+    });
 
-  //   // it('Should edit message with sizeInlineKeyboard of ui service', () => {
-  //   //   const ctx = makeTelegrafMockContext({
-  //   //     callback_query: { data: ACTIONS.SIZE },
-  //   //   });
+    it('Should return undefined if could not transist to the given state', () => {
+      const ctx = makeTelegrafMockContext({
+        callback_query: { data: '1', from: { id: Date.now() } },
+      });
+      telegrafUsersStatesService.hasState = jest.fn(() => false);
+      expect(service.onOpacity(ctx)).toBeUndefined();
+    });
 
-  //   //   service.onChangeSizeSettings(ctx);
+    it('Should reply with CHOOSE_COLOR if it transist to given state', () => {
+      const ctx = makeTelegrafMockContext({
+        callback_query: { data: 'test', from: { id: Date.now() } },
+      });
+      service.tryTransistToGivenState = jest.fn(() => true);
+      telegrafUsersStatesService.hasState = jest.fn(() => true);
 
-  //   //   expect(ctx.editMessageText).toHaveBeenCalledWith(
-  //   //     MESSAGES.CHANGE_SIZE,
-  //   //     telegrafUiServuce.sizeInlineKeyboard,
-  //   //   );
-  //   // });
-  // });
+      service.onOpacity(ctx);
 
-  // describe('onExitSettings', () => {
-  //   it('Should edit message with UPDATE_SETTINGS message', () => {
-  //     // const ctx = makeTelegrafMockContext();
-  //     // service.onExitSettings(ctx);
-  //     // expect(ctx.editMessageText).toHaveBeenCalledWith(
-  //     //   MESSAGES.UPDATE_SETTINGS,
-  //     // );
-  //   });
-  // });
+      expect(ctx.editMessageText).toHaveBeenCalledWith(
+        MESSAGES.CHOOSE_COLOR,
+        telegrafUiServuce.colorKeyboard,
+      );
+    });
+  });
+
+  describe('onColor', () => {
+    it('Should reply with BAD_REQUEST message if "data" is not in callbackQuery', async () => {
+      const ctx = makeTelegrafMockContext({ callback_query: {} });
+      await service.onColor(ctx);
+      expect(ctx.reply).toHaveBeenCalledWith(MESSAGES.BAD_REQUEST);
+    });
+
+    it('Should return undefined if could not transist to the given state', async () => {
+      const ctx = makeTelegrafMockContext({
+        callback_query: { data: '1', from: { id: Date.now() } },
+      });
+      telegrafUsersStatesService.hasState = jest.fn(() => false);
+
+      const result = await service.onColor(ctx);
+      expect(result).toBeUndefined();
+    });
+
+    it('Should reply with photo and COMPLETE message', async () => {
+      const ctx = makeTelegrafMockContext({
+        callback_query: { data: '1', from: { id: Date.now() } },
+      });
+      telegrafUsersStatesService.hasState = jest.fn(() => true);
+
+      const buf = Buffer.alloc(10);
+      buf.fill('A');
+
+      telegrafUsersStatesService.getStateData = jest.fn(() => ({
+        file: buf,
+      }));
+
+      await service.onColor(ctx);
+
+      expect(ctx.editMessageText).toHaveBeenCalledWith(MESSAGES.COMPLETE);
+      expect(ctx.replyWithPhoto).toHaveBeenCalledWith(
+        expect.objectContaining({ source: buf }),
+      );
+    });
+  });
+
+  describe('onHelp', () => {
+    it('Should reply with HELP message', () => {
+      const ctx = makeTelegrafMockContext();
+      service.onHelp(ctx);
+
+      expect(ctx.reply).toHaveBeenCalledWith(MESSAGES.HELP);
+    });
+  });
+
+  describe('getFile', () => {
+    it('Should return ArrayBuffer', async () => {
+      const arrayBuffer = new ArrayBuffer(10);
+      httpService.get = () =>
+        new Observable((sub) => {
+          sub.next({ data: arrayBuffer } as AxiosResponse);
+        });
+      const result = await service.getFile('http://localhost');
+      expect(result).toBe(arrayBuffer);
+    });
+
+    it('Should throw FILE_REQUEST_ERROR in case request was failed', async () => {
+      try {
+        httpService.get = () =>
+          new Observable((sub) => {
+            sub.error(SYS_MESSAGES.FILE_REQUEST_ERROR);
+          });
+        await service.getFile('http://localhost');
+        expect(true).toBe(false);
+      } catch (error) {
+        expect(error.message).toBe(SYS_MESSAGES.FILE_REQUEST_ERROR);
+      }
+    });
+  });
+
+  describe('tryTransistToGivenState', () => {
+    it('Should return fase if transition was not sucessfull', () => {
+      const ctx = makeTelegrafMockContext();
+      telegrafUsersStatesService.goto = jest.fn(() => false);
+
+      expect(
+        service.tryTransistToGivenState(ctx, 1, BOT_STATES.ADD_PIC),
+      ).toBeFalsy();
+    });
+
+    it('Should return true if transition was sucessfull', () => {
+      const ctx = makeTelegrafMockContext();
+      telegrafUsersStatesService.goto = jest.fn(() => true);
+
+      expect(
+        service.tryTransistToGivenState(ctx, 1, BOT_STATES.ADD_PIC),
+      ).toBeTruthy();
+    });
+
+    it('Should reply with CONTINUE_FROM_STATE message if transition was not succesfull and callback_query is null', () => {
+      const ctx = makeTelegrafMockContext();
+      telegrafUsersStatesService.goto = jest.fn(() => false);
+      telegrafUsersStatesService.getState = jest.fn(
+        () => BOT_STATES.ADD_BG_PIC,
+      );
+      service.tryTransistToGivenState(ctx, 1, BOT_STATES.ADD_PIC);
+      expect(ctx.reply).toHaveBeenCalledWith(
+        MESSAGES.CONTINUE_FROM_STATE(BOT_STATES.ADD_BG_PIC),
+      );
+    });
+
+    it('Should editMessageText with CONTINUE_FROM_STATE message if transition was not succesfull and callback_query is not null', () => {
+      const ctx = makeTelegrafMockContext({ callback_query: {} });
+      telegrafUsersStatesService.goto = jest.fn(() => false);
+      telegrafUsersStatesService.getState = jest.fn(
+        () => BOT_STATES.ADD_BG_PIC,
+      );
+      service.tryTransistToGivenState(ctx, 1, BOT_STATES.ADD_PIC);
+      expect(ctx.editMessageText).toHaveBeenCalledWith(
+        MESSAGES.CONTINUE_FROM_STATE(BOT_STATES.ADD_BG_PIC),
+      );
+    });
+  });
+
+  describe('stateNotFoundReply', () => {
+    it('Should editMessageText with USER_STATE_NOT_FOUND message if callback_query is not null', () => {
+      const ctx = makeTelegrafMockContext({ callback_query: {} });
+      service.stateNotFoundReply(ctx);
+      expect(ctx.editMessageText).toHaveBeenCalledWith(
+        MESSAGES.USER_STATE_NOT_FOUND,
+      );
+    });
+
+    it('Should reply with USER_STATE_NOT_FOUND message if callback_query is null', () => {
+      const ctx = makeTelegrafMockContext();
+      service.stateNotFoundReply(ctx);
+      expect(ctx.reply).toHaveBeenCalledWith(MESSAGES.USER_STATE_NOT_FOUND);
+    });
+  });
 });
