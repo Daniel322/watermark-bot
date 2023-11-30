@@ -9,8 +9,11 @@ const telegramApi = registerAs('telegram', () => ({
   token: process.env.TELEGRAM_BOT_TOKEN,
 }));
 
-const cacheManager = registerAs('cache', () => ({
-  fileBufTtl: Number(process.env.FILE_BUF_TTL ?? 300000),
+const userStateManager = registerAs('userStateManager', () => ({
+  gcTimer: Number(process.env.USER_STATE_MANAGER_GC_TIMER ?? 1000 * 60),
+  fmsInactiveTime: Number(
+    process.env.USER_STATE_MANAGER_FMS_INACTIVE_TIME ?? 1000 * 60 * 10,
+  ),
 }));
 
 export const EnvConfig = {
@@ -20,8 +23,9 @@ export const EnvConfig = {
       .valid('development', 'production', 'test')
       .required(),
     TELEGRAM_BOT_TOKEN: Joi.string().optional(),
-    FILE_BUF_TTL: Joi.number().optional(),
+    USER_STATE_MANAGER_GC_TIMER: Joi.number().optional(),
+    USER_STATE_MANAGER_FMS_INACTIVE_TIME: Joi.number().optional(),
   }),
-  load: [env, telegramApi, cacheManager],
+  load: [env, telegramApi, userStateManager],
   isGlobal: true,
 };
