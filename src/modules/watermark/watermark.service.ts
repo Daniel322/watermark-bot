@@ -86,10 +86,15 @@ export class WatermarkService {
       <svg
         width="${imageWidth}"
         height="${imageHeight}"
-        style="transform-box: fill-box;transform-origin: center;transform: rotate(${rotate});"
-        fill="rgb(255, 255, 255)"
+        viewBox="0 0 ${imageWidth} ${imageHeight}"
+        class="svg"
       >
       <style>
+      .svg {
+        transform-box: fill-box;
+        transform-origin: center;
+        transform: rotate(${rotate});
+      }
       .title { fill: rgba(${COLORS[color]}, ${opacity});
       font-size: ${fontSize}px;
       font-weight: bold;
