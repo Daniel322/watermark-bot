@@ -6,7 +6,7 @@ import { join } from 'path';
 import { WatermarkService } from './watermark.service';
 import {
   GeneratePatternProps,
-  GenerateTextWatermarkProps,
+  GenerateWatermarkProps,
   DICTIONARY,
 } from './watermark.types';
 
@@ -67,7 +67,7 @@ describe('WatermarkService', () => {
   });
 
   describe('generatePatternWatermarkSvg', () => {
-    const options: GenerateTextWatermarkProps = {
+    const options: GenerateWatermarkProps = {
       text: 'test',
       imageWidth: 500,
       imageHeight: 500,
@@ -85,7 +85,7 @@ describe('WatermarkService', () => {
   });
 
   describe('generateSingleWatermarkSvg', () => {
-    const options: GenerateTextWatermarkProps = {
+    const options: GenerateWatermarkProps = {
       text: 'test',
       imageWidth: 1000,
       imageHeight: 1000,

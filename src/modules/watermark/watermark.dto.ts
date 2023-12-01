@@ -10,3 +10,9 @@ export class WatermarkBodyDto {
   @IsString()
   size: Size;
 }
+
+export class ImageWatermarkBodyDto {
+  @IsOptional()
+  @IsString()
+  size: Size;
+}

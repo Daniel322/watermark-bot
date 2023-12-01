@@ -3,7 +3,7 @@ import { Injectable } from '@nestjs/common';
 import * as sharp from 'sharp';
 import {
   GetFontSizeProps,
-  GenerateTextWatermarkProps,
+  GenerateWatermarkProps,
   GeneratePatternProps,
   SetTextWatermarkProps,
   WatermarkType,
@@ -15,11 +15,20 @@ import {
   CompositePosition,
   PositionType,
   DICTIONARY,
+  SetImageWatermarkProps,
 } from './watermark.types';
 
 @Injectable()
 export class WatermarkService {
   constructor() {}
+
+  async createImageWithImageWatermark({
+    file,
+    watermark,
+    options,
+  }: SetImageWatermarkProps) {
+    return this.compositeImageAndWatermark(file, watermark);
+  }
 
   async createImageWithTextWatermark({
     file,
@@ -30,7 +39,7 @@ export class WatermarkService {
   }: SetTextWatermarkProps): Promise<Buffer> {
     const { width, height }: sharp.Metadata = await sharp(file).metadata();
 
-    const generateOptions: GenerateTextWatermarkProps = {
+    const generateOptions: GenerateWatermarkProps = {
       text,
       imageHeight: height,
       imageWidth: width,
@@ -72,7 +81,7 @@ export class WatermarkService {
     color = COLORS_TYPES.white,
     rotate = 0,
     position = POSITION_TYPES.topLeft,
-  }: GenerateTextWatermarkProps): Buffer {
+  }: GenerateWatermarkProps): Buffer {
     const fontSize = this.getFontSize({
       size,
       textLength: text.length,
@@ -132,7 +141,7 @@ export class WatermarkService {
     imageHeight,
     opacity = 1,
     color = COLORS_TYPES.white,
-  }: GenerateTextWatermarkProps): Buffer {
+  }: GenerateWatermarkProps): Buffer {
     const { weightCoefficient, x, y } = DICTIONARY[size];
 
     const fontSize = (imageWidth * weightCoefficient) / text.length;
