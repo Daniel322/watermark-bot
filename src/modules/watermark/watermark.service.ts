@@ -15,8 +15,6 @@ import {
   CompositePosition,
   PositionType,
   DICTIONARY,
-  Coordinates,
-  GenerateRotateArgsProps,
 } from './watermark.types';
 
 @Injectable()
