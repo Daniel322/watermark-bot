@@ -83,19 +83,6 @@ export class WatermarkService {
 
     const { x, y } = DICTIONARY[size];
 
-    console.log(
-      this.generateRotateArgs({ rotate, position, imageWidth, imageHeight }),
-      imageWidth,
-      imageHeight,
-    );
-
-    const { x: xTranslate, y: yTranslate } = this.generateRotateArgs({
-      rotate,
-      position,
-      imageWidth,
-      imageHeight,
-    });
-
     const svg = `
       <svg
         xmlns="http://www.w3.org/2000/svg"
@@ -130,7 +117,7 @@ export class WatermarkService {
       filter="url(#solid)"
       class="title"
       id="text"
-      transform="rotate(${rotate}, ${xTranslate}, ${yTranslate})"
+      transform="rotate(${rotate})"
     >
       ${text}
     </text>
@@ -209,41 +196,5 @@ export class WatermarkService {
     return type === WATERMARK_TYPES.pattern
       ? value[type]
       : value[type][position];
-  }
-
-  generateRotateArgs({
-    position,
-    rotate,
-    imageHeight,
-    imageWidth,
-  }: GenerateRotateArgsProps): Coordinates {
-    switch (position) {
-      case 'topLeft': {
-        if (rotate >= 0 && rotate < 80) {
-          return { x: 0, y: 30 };
-        } else if (rotate >= 80 && rotate <= 90) {
-          return { x: 0, y: 40 };
-        } else if (rotate < 0 && rotate >= -25) {
-          return { x: 150, y: 50 };
-        } else if (rotate < -25 && rotate >= -90) {
-          // return { x: 150, y: 80 };
-          return { x: imageWidth * 0.117, y: imageHeight * 0.0625 };
-        }
-      }
-      case 'topCenter': {
-        if (rotate >= 0 && rotate <= 10) {
-          return { x: 500, y: 0 };
-        } else if (rotate > 10 && rotate <= 90) {
-          return { x: 600, y: 0 };
-        } else if (rotate < 0 && rotate >= -90) {
-          return { x: 800, y: 0 };
-        }
-      }
-      case 'topRight': {
-        if (rotate >= 0 && rotate <= 90) {
-          return { x: 1100, y: 0 };
-        }
-      }
-    }
   }
 }
