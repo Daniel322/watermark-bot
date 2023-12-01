@@ -58,6 +58,13 @@ export type GenerateWatermarkProps = {
   rotate?: number;
 };
 
+export type SetSizeToImageWatermarkProps = Omit<
+  GenerateWatermarkProps,
+  'text'
+> & {
+  watermark: Buffer;
+};
+
 export type GenerateRotateArgsKeys =
   | 'rotate'
   | 'position'

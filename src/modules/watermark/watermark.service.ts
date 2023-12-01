@@ -16,6 +16,8 @@ import {
   PositionType,
   DICTIONARY,
   SetImageWatermarkProps,
+  SetSizeToImageWatermarkProps,
+  Size,
 } from './watermark.types';
 
 @Injectable()
@@ -25,9 +27,19 @@ export class WatermarkService {
   async createImageWithImageWatermark({
     file,
     watermark,
-    options,
+    options: { size = 's', ...options },
   }: SetImageWatermarkProps) {
-    return this.compositeImageAndWatermark(file, watermark);
+    const { width, height }: sharp.Metadata = await sharp(file).metadata();
+
+    const sizedWatermark = await this.setOptionsToImageWatermark({
+      watermark,
+      size,
+      imageHeight: height,
+      imageWidth: width,
+      ...options,
+    });
+
+    return this.compositeImageAndWatermark(file, sizedWatermark);
   }
 
   async createImageWithTextWatermark({
@@ -60,6 +72,48 @@ export class WatermarkService {
     );
 
     return imageWithWatermark;
+  }
+
+  async setOptionsToImageWatermark({
+    watermark,
+    imageWidth: width,
+    imageHeight: height,
+    size,
+    opacity = 1,
+  }: SetSizeToImageWatermarkProps): Promise<Buffer> {
+    //TODO: move to constatns
+    const sizeCoefficients: Record<Size, number> = {
+      s: 0.1,
+      m: 0.2,
+      l: 0.3,
+    };
+
+    const withoutOpacity = 255;
+
+    const opacityBufferValue = Math.round(opacity * withoutOpacity);
+    const opacityBuffer = Buffer.alloc(width * height, opacityBufferValue);
+
+    const result = await sharp(watermark)
+      .png()
+      .resize(
+        Math.floor(width * sizeCoefficients[size]),
+        Math.floor(height * sizeCoefficients[size]),
+      )
+      .composite([
+        {
+          input: opacityBuffer,
+          raw: {
+            width: 1,
+            height: 1,
+            channels: 4,
+          },
+          tile: true,
+          blend: 'dest-in',
+        },
+      ])
+      .toBuffer();
+
+    return result;
   }
 
   compositeImageAndWatermark(
