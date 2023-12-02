@@ -27,19 +27,96 @@ export class WatermarkService {
   async createImageWithImageWatermark({
     file,
     watermark,
-    options: { size = 's', ...options },
+    options: { position = 'topLeft', size = 's', ...options },
   }: SetImageWatermarkProps) {
     const { width, height }: sharp.Metadata = await sharp(file).metadata();
 
     const sizedWatermark = await this.setOptionsToImageWatermark({
       watermark,
-      size,
       imageHeight: height,
       imageWidth: width,
+      size,
       ...options,
     });
 
-    return this.compositeImageAndWatermark(file, sizedWatermark);
+    const POSITION_COORDINATES_COEFFICIENTS = {
+      s: {
+        top: {
+          center: 0.45,
+          bottom: 0.9,
+        },
+        left: {
+          center: 0.45,
+          right: 0.9,
+        },
+      },
+      m: {
+        top: {
+          center: 0.4,
+          bottom: 0.8,
+        },
+        left: {
+          center: 0.4,
+          right: 0.8,
+        },
+      },
+      l: {
+        top: {
+          center: 0.35,
+          bottom: 0.7,
+        },
+        left: {
+          center: 0.35,
+          right: 0.7,
+        },
+      },
+    } as const;
+
+    const coefficients = POSITION_COORDINATES_COEFFICIENTS[size];
+
+    const POSITION_COORDINATES: Record<PositionType, CompositePosition> = {
+      topLeft: { top: 0, left: 0 },
+      topCenter: {
+        top: 0,
+        left: Math.floor(width * coefficients['left']['center']),
+      },
+      topRight: {
+        top: 0,
+        left: Math.floor(width * coefficients['left']['right']),
+      },
+      centerLeft: {
+        top: Math.floor(height * coefficients['top']['center']),
+        left: 0,
+      },
+      centerCenter: {
+        top: Math.floor(height * coefficients['top']['center']),
+        left: Math.floor(width * coefficients['left']['center']),
+      },
+      centerRight: {
+        top: Math.floor(height * coefficients['top']['center']),
+        left: Math.floor(width * coefficients['left']['right']),
+      },
+      bottomLeft: {
+        top: Math.floor(height * coefficients['top']['bottom']),
+        left: 0,
+      },
+      bottomCenter: {
+        top: Math.floor(height * coefficients['top']['bottom']),
+        left: Math.floor(width * coefficients['left']['center']),
+      },
+      bottomRight: {
+        top: Math.floor(height * coefficients['top']['bottom']),
+        left: Math.floor(width * coefficients['left']['right']),
+      },
+    };
+
+    const compositeOptions: CompositePosition = POSITION_COORDINATES[position];
+
+    return this.compositeImageAndWatermark(
+      file,
+      sizedWatermark,
+      compositeOptions,
+    );
   }
 
   async createImageWithTextWatermark({
@@ -88,7 +165,7 @@ export class WatermarkService {
     watermark,
     imageWidth: width,
     imageHeight: height,
-    size,
+    size = 's',
     opacity = 1,
     rotate = 0,
   }: SetSizeToImageWatermarkProps): Promise<Buffer> {
