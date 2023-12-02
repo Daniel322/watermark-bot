@@ -85,6 +85,7 @@ export class TelegrafService implements OnModuleInit, OnModuleDestroy {
     this.bot.action(Object.values(SIZES), this.onSize);
     this.bot.action(new RegExp(ACTIONS.OPACITY), this.onOpacity);
     this.bot.action(new RegExp(ACTIONS.POSITION), this.onPosition);
+    this.bot.action(new RegExp(ACTIONS.SKIP), this.onSkip);
   }
 
   @Bind
@@ -350,7 +351,9 @@ export class TelegrafService implements OnModuleInit, OnModuleDestroy {
         return this.stateNotFoundReply(ctx);
       }
 
-      this.userStatesService.update(from.id, { color: data as Color });
+      if (data != null) {
+        this.userStatesService.update(from.id, { color: data as Color });
+      }
 
       const { file, text, ...options } = this.userStatesService.getStateData(
         from.id,
@@ -417,6 +420,43 @@ export class TelegrafService implements OnModuleInit, OnModuleDestroy {
       ctx.editMessageText(MESSAGES.USER_STATE_NOT_FOUND);
     } else {
       ctx.reply(MESSAGES.USER_STATE_NOT_FOUND);
+    }
+  }
+
+  @Bind
+  onSkip(ctx): void {
+    try {
+      if (!('data' in ctx.callbackQuery)) {
+        throw new Error(SYS_MESSAGES.NO_DATA_ON_CHANGE_SIZE);
+      }
+      const { data } = ctx.callbackQuery;
+      const [, toState] = data.split('|');
+
+      const message = MESSAGES[toState];
+      let keyboard;
+
+      if (toState == null) {
+        ctx.callbackQuery.data = null;
+        this.onColor(ctx);
+        return;
+      }
+
+      if (toState === BOT_STATES.CHOOSE_POSITION) {
+        keyboard = this.uiService.positionKeyboard;
+      } else if (toState === BOT_STATES.CHOOSE_SIZE) {
+        keyboard = this.uiService.sizeKeyboard;
+      } else if (toState === BOT_STATES.CHOOSE_OPACITY) {
+        keyboard = this.uiService.opacityKeyboard;
+      } else if (toState === BOT_STATES.CHOOSE_COLOR) {
+        keyboard = this.uiService.colorKeyboard;
+      } else {
+        throw new Error(SYS_MESSAGES.UNHANDLED_STATE_TO_SKIP);
+      }
+
+      ctx.editMessageText(message, keyboard);
+    } catch (error) {
+      this.logger.error(error.message);
+      ctx.reply(MESSAGES.BAD_REQUEST);
     }
   }
 }

@@ -220,7 +220,7 @@ describe('TelegrafService', () => {
       expect(telegraf.start).toHaveBeenCalledTimes(1);
       expect(telegraf.command).toHaveBeenCalledTimes(1);
       expect(telegraf.on).toHaveBeenCalledTimes(2);
-      expect(telegraf.action).toHaveBeenCalledTimes(5);
+      expect(telegraf.action).toHaveBeenCalledTimes(6);
     });
   });
 
@@ -694,6 +694,14 @@ describe('TelegrafService', () => {
       const ctx = makeTelegrafMockContext();
       service.stateNotFoundReply(ctx);
       expect(ctx.reply).toHaveBeenCalledWith(MESSAGES.USER_STATE_NOT_FOUND);
+    });
+  });
+
+  describe('onSkip', () => {
+    it('Should reply with BAD_REQUEST message if "data" is not in callbackQuery', () => {
+      const ctx = makeTelegrafMockContext({ callback_query: {} });
+      service.onSkip(ctx);
+      expect(ctx.reply).toHaveBeenCalledWith(MESSAGES.BAD_REQUEST);
     });
   });
 });

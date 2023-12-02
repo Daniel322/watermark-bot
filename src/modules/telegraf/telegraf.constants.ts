@@ -68,6 +68,7 @@ export const SYS_MESSAGES = <const>{
   NO_DATA_ON_CHANGE_SIZE: 'NO_DATA_ON_CHANGE_SIZE',
   USER_STATE_NOT_FOUND: 'USER_STATE_NOT_FOUND',
   WRONG_STATE_ON_TEXT: 'WRONG_STATE_ON_TEXT',
+  UNHANDLED_STATE_TO_SKIP: 'UNHANDLED_STATE_TO_SKIP',
 };
 
 export const COMMANDS = <const>{
@@ -78,6 +79,7 @@ export const ACTIONS = <const>{
   OPACITY: 'opacity',
   POSITION: 'positon',
   ROTATION: 'rotation',
+  SKIP: 'skip',
 };
 
 export const COMMANDS_LIST: BotCommand[] = [
