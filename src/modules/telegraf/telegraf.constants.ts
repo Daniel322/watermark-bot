@@ -38,6 +38,7 @@ export const MESSAGES = <const>{
   WELCOME: `${EMOJI.HOORAY} Добро пожаловать!\n\n${EMOJI.ART} Отправьте изображение для нанесения водного знака:`,
   BAD_REQUEST: `${EMOJI.CONFUSED} Что-то пошло не так. Попробуй еще раз`,
   ASK_TEXT: `${EMOJI.NOTE} Введите текст:`,
+  ASK_WATERMARK: `${EMOJI.NOTE}/${EMOJI.ART} Введите текст или отправьте изображение:`,
   FILE_NOT_FOUND: `${EMOJI.CROSS} Фото не найдено. Начните заново с отправки фото`,
   CHANGE_SETTINGS: `${EMOJI.GEAR} Настройки:`,
   CHOOSE_SIZE: `${EMOJI.RULER} Выберите размер:`,
@@ -92,8 +93,7 @@ export const EVENTS = <const>{
 
 export const BOT_STATES = <const>{
   ADD_BG_PIC: 'ADD_BG_PIC',
-  ADD_TEXT: 'ADD_TEXT',
-  ADD_PIC: 'ADD_PIC',
+  ADD_WATERMARK: 'ADD_WATERMARK',
   CHOOSE_WM_TYPE: 'CHOOSE_WM_TYPE',
   CHOOSE_POSITION: 'CHOOSE_POSITION',
   CHOOSE_ROTATION: 'CHOOSE_ROTATION',

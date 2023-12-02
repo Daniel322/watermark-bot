@@ -105,21 +105,46 @@ export class TelegrafService implements OnModuleInit, OnModuleDestroy {
 
       if (file == null) throw new Error(SYS_MESSAGES.NO_FILE_IN_MESSAGE);
 
-      this.userStatesService.add(from.id);
+      const hasState = this.userStatesService.hasState(from.id);
 
       const fileLink = await this.bot.telegram.getFileLink(file.file_id);
       const arrayBuffer = await this.getFile(fileLink.href);
-
-      this.userStatesService.update(from.id, {
-        file: Buffer.from(arrayBuffer),
-      });
-      this.userStatesService.goto(from.id, BOT_STATES.ADD_TEXT);
-
-      await ctx.reply(MESSAGES.ASK_TEXT);
+      if (hasState) {
+        const state = this.userStatesService.getState(from.id);
+        if (state === BOT_STATES.ADD_WATERMARK) {
+          return this.onWatermarkPhoto(ctx, from.id, Buffer.from(arrayBuffer));
+        }
+      }
+      return this.onBackgroundPhoto(ctx, from.id, Buffer.from(arrayBuffer));
     } catch (error) {
+      console.log(error);
       this.logger.error(error.message);
       await ctx.reply(MESSAGES.BAD_REQUEST);
     }
+  }
+
+  onBackgroundPhoto(ctx, userId: number, file: Buffer): void {
+    this.userStatesService.add(userId);
+
+    this.userStatesService.update(userId, {
+      file,
+    });
+    this.userStatesService.goto(userId, BOT_STATES.ADD_WATERMARK);
+
+    ctx.reply(MESSAGES.ASK_WATERMARK);
+  }
+
+  onWatermarkPhoto(ctx, id: number, file: Buffer): void {
+    if (!this.tryTransistToGivenState(ctx, id, BOT_STATES.CHOOSE_WM_TYPE)) {
+      return;
+    }
+
+    this.userStatesService.update(id, { watermarkFile: file });
+
+    ctx.replyWithMarkdownV2(
+      MESSAGES.CHOOSE_PLACEMENT_STYLE,
+      this.uiService.patternTypeKeyboard,
+    );
   }
 
   @Bind
@@ -138,7 +163,7 @@ export class TelegrafService implements OnModuleInit, OnModuleDestroy {
 
       const state = this.userStatesService.getState(from.id);
 
-      if (state === BOT_STATES.ADD_TEXT) {
+      if (state === BOT_STATES.ADD_WATERMARK) {
         return this.onWatermarkText(ctx, from.id, text);
       }
       if (state === BOT_STATES.CHOOSE_ROTATION) {

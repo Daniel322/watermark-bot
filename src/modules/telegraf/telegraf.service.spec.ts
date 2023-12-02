@@ -85,6 +85,7 @@ const makeTelegrafUserStateServiceMock = () => ({
   getStateData: jest.fn(),
   goto: jest.fn(),
   remove: jest.fn(),
+  add: jest.fn(),
 });
 
 describe('TelegrafService', () => {
@@ -231,6 +232,107 @@ describe('TelegrafService', () => {
     });
   });
 
+  describe('onPhoto', () => {
+    it('Should reply with BAD_REQUEST message if "photo" is not in message', async () => {
+      const ctx = makeTelegrafMockContext({ message: {} });
+      await service.onPhoto(ctx);
+      expect(ctx.reply).toHaveBeenCalledWith(MESSAGES.BAD_REQUEST);
+    });
+
+    it('Should reply with BAD_REQUEST message if "photo" array is empty', async () => {
+      const ctx = makeTelegrafMockContext({ message: { photo: [] } });
+      await service.onPhoto(ctx);
+      expect(ctx.reply).toHaveBeenCalledWith(MESSAGES.BAD_REQUEST);
+    });
+
+    it('Should call onBackgroundPhoto if user has no state', async () => {
+      const ctx = makeTelegrafMockContext({
+        message: { photo: [{ file_id: 1 }], from: { id: Date.now() } },
+      });
+
+      service.getFile = async () => Buffer.alloc(10).fill('A');
+
+      service.onBackgroundPhoto = jest.fn(() => null);
+      await service.onPhoto(ctx);
+
+      expect(service.onBackgroundPhoto).toHaveBeenCalled();
+    });
+
+    it('Should call onBackgroundPhoto if user has state that is not equal to ADD_WATERMARK', async () => {
+      const ctx = makeTelegrafMockContext({
+        message: { photo: [{ file_id: 1 }], from: { id: Date.now() } },
+      });
+
+      telegrafUsersStatesService.hasState = jest.fn(() => true);
+      telegrafUsersStatesService.getState = jest.fn(
+        () => BOT_STATES.CHOOSE_OPACITY,
+      );
+      service.getFile = async () => Buffer.alloc(10).fill('A');
+
+      service.onBackgroundPhoto = jest.fn(() => null);
+      await service.onPhoto(ctx);
+
+      expect(service.onBackgroundPhoto).toHaveBeenCalled();
+    });
+
+    it('Should call onWatermarkPhoto if user has state that is equal to ADD_WATERMARK', async () => {
+      const ctx = makeTelegrafMockContext({
+        message: { photo: [{ file_id: 1 }], from: { id: Date.now() } },
+      });
+
+      telegrafUsersStatesService.hasState = jest.fn(() => true);
+      telegrafUsersStatesService.getState = jest.fn(
+        () => BOT_STATES.ADD_WATERMARK,
+      );
+      service.getFile = async () => Buffer.alloc(10).fill('A');
+
+      service.onWatermarkPhoto = jest.fn(() => null);
+      await service.onPhoto(ctx);
+
+      expect(service.onWatermarkPhoto).toHaveBeenCalled();
+    });
+  });
+
+  describe('onBackgroundPhoto', () => {
+    it('Should reply with ASK_WATERMARK', () => {
+      const ctx = makeTelegrafMockContext();
+      service.onBackgroundPhoto(ctx, 1, Buffer.from('test'));
+      expect(ctx.reply).toHaveBeenCalledWith(MESSAGES.ASK_WATERMARK);
+    });
+
+    it('Should call update user state with given file', () => {
+      const ctx = makeTelegrafMockContext();
+      const file = Buffer.from('test');
+      service.onBackgroundPhoto(ctx, 1, file);
+      expect(telegrafUsersStatesService.update).toHaveBeenCalledWith(
+        1,
+        expect.objectContaining({ file }),
+      );
+    });
+  });
+
+  describe('onWatermarkPhoto', () => {
+    it('Should return undefined if could not transist to the given state', () => {
+      const ctx = makeTelegrafMockContext();
+      service.tryTransistToGivenState = jest.fn(() => false);
+      expect(
+        service.onWatermarkPhoto(ctx, 1, Buffer.from('test')),
+      ).toBeUndefined();
+    });
+
+    it('Should call update user state with given file', () => {
+      const ctx = makeTelegrafMockContext();
+      const watermarkFile = Buffer.from('test');
+      service.tryTransistToGivenState = jest.fn(() => true);
+      telegrafUsersStatesService.update = jest.fn();
+      service.onWatermarkPhoto(ctx, 1, watermarkFile);
+      expect(telegrafUsersStatesService.update).toHaveBeenCalledWith(
+        1,
+        expect.objectContaining({ watermarkFile }),
+      );
+    });
+  });
+
   describe('onText', () => {
     it('Should reply with BAD_REQUEST message if "text" is not in message', () => {
       const ctx = makeTelegrafMockContext({ message: {} });
@@ -262,7 +364,9 @@ describe('TelegrafService', () => {
       });
 
       telegrafUsersStatesService.hasState = jest.fn(() => true);
-      telegrafUsersStatesService.getState = jest.fn(() => BOT_STATES.ADD_TEXT);
+      telegrafUsersStatesService.getState = jest.fn(
+        () => BOT_STATES.ADD_WATERMARK,
+      );
       service.onWatermarkText = jest.fn();
 
       service.onText(ctx);
@@ -539,7 +643,7 @@ describe('TelegrafService', () => {
       telegrafUsersStatesService.goto = jest.fn(() => false);
 
       expect(
-        service.tryTransistToGivenState(ctx, 1, BOT_STATES.ADD_PIC),
+        service.tryTransistToGivenState(ctx, 1, BOT_STATES.ADD_WATERMARK),
       ).toBeFalsy();
     });
 
@@ -548,7 +652,7 @@ describe('TelegrafService', () => {
       telegrafUsersStatesService.goto = jest.fn(() => true);
 
       expect(
-        service.tryTransistToGivenState(ctx, 1, BOT_STATES.ADD_PIC),
+        service.tryTransistToGivenState(ctx, 1, BOT_STATES.ADD_WATERMARK),
       ).toBeTruthy();
     });
 
@@ -558,7 +662,7 @@ describe('TelegrafService', () => {
       telegrafUsersStatesService.getState = jest.fn(
         () => BOT_STATES.ADD_BG_PIC,
       );
-      service.tryTransistToGivenState(ctx, 1, BOT_STATES.ADD_PIC);
+      service.tryTransistToGivenState(ctx, 1, BOT_STATES.ADD_WATERMARK);
       expect(ctx.reply).toHaveBeenCalledWith(
         MESSAGES.CONTINUE_FROM_STATE(BOT_STATES.ADD_BG_PIC),
       );
@@ -570,7 +674,7 @@ describe('TelegrafService', () => {
       telegrafUsersStatesService.getState = jest.fn(
         () => BOT_STATES.ADD_BG_PIC,
       );
-      service.tryTransistToGivenState(ctx, 1, BOT_STATES.ADD_PIC);
+      service.tryTransistToGivenState(ctx, 1, BOT_STATES.ADD_WATERMARK);
       expect(ctx.editMessageText).toHaveBeenCalledWith(
         MESSAGES.CONTINUE_FROM_STATE(BOT_STATES.ADD_BG_PIC),
       );
