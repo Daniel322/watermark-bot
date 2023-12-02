@@ -74,12 +74,23 @@ export class WatermarkService {
     return imageWithWatermark;
   }
 
+  compositeImageAndWatermark(
+    image: Buffer,
+    watermark: Buffer,
+    options: CompositePosition = { top: 0, left: 0 },
+  ): Promise<Buffer> {
+    return sharp(image)
+      .composite([{ input: watermark, ...options }])
+      .toBuffer();
+  }
+
   async setOptionsToImageWatermark({
     watermark,
     imageWidth: width,
     imageHeight: height,
     size,
     opacity = 1,
+    rotate = 0,
   }: SetSizeToImageWatermarkProps): Promise<Buffer> {
     //TODO: move to constatns
     const sizeCoefficients: Record<Size, number> = {
@@ -111,19 +122,10 @@ export class WatermarkService {
           blend: 'dest-in',
         },
       ])
+      .rotate(Number(rotate), { background: 'rgba(0,0,0,0)' })
       .toBuffer();
 
     return result;
-  }
-
-  compositeImageAndWatermark(
-    image: Buffer,
-    watermark: Buffer,
-    options: CompositePosition = { top: 0, left: 0 },
-  ): Promise<Buffer> {
-    return sharp(image)
-      .composite([{ input: watermark, ...options }])
-      .toBuffer();
   }
 
   generateSingleWatermarkSvg({
