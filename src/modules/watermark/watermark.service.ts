@@ -27,7 +27,7 @@ export class WatermarkService {
   async createImageWithImageWatermark({
     file,
     watermark,
-    options: { position = 'topLeft', size = 's', ...options },
+    options: { position = 'topLeft', size = 's', type = 'single', ...options },
   }: SetImageWatermarkProps) {
     const { width, height }: sharp.Metadata = await sharp(file).metadata();
 
@@ -112,11 +112,21 @@ export class WatermarkService {
 
     const compositeOptions: CompositePosition = POSITION_COORDINATES[position];
 
-    return this.compositeImageAndWatermark(
-      file,
-      sizedWatermark,
-      compositeOptions,
-    );
+    if (type === 'single') {
+      return this.compositeImageAndWatermark(
+        file,
+        sizedWatermark,
+        compositeOptions,
+      );
+    } else {
+      return this.compositeImageAndWatermarkPattern({
+        image: file,
+        watermark: sizedWatermark,
+        size,
+        height,
+        width,
+      });
+    }
   }
 
   async createImageWithTextWatermark({
@@ -159,6 +169,29 @@ export class WatermarkService {
     return sharp(image)
       .composite([{ input: watermark, ...options }])
       .toBuffer();
+  }
+
+  compositeImageAndWatermarkPattern({ image, watermark, size, height, width }) {
+    const patternsForComposite = {
+      s: { rows: 4, columns: 4 },
+      m: { rows: 3, columns: 3 },
+      l: { rows: 2, columns: 2 },
+    } as const;
+
+    const currentPattern = patternsForComposite[size];
+
+    const patternParts: sharp.OverlayOptions[] = [];
+    let top = 0;
+    for (let column = 0; column < currentPattern.columns; column++) {
+      let left = 0;
+      for (let row = 0; row < currentPattern.rows; row++) {
+        patternParts.push({ input: watermark, top, left });
+        left += Math.floor(width / currentPattern.rows);
+      }
+      top += Math.floor(height / currentPattern.columns);
+    }
+
+    return sharp(image).composite(patternParts).toBuffer();
   }
 
   async setOptionsToImageWatermark({
