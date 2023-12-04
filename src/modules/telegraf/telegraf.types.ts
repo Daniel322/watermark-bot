@@ -1,8 +1,8 @@
-import { GenerateTextWatermarkProps } from '@modules/watermark/watermark.types';
+import { GenerateWatermarkProps } from '@modules/watermark/watermark.types';
 import { BOT_STATES } from './telegraf.constants';
 
 export interface SelectedOptions
-  extends Omit<GenerateTextWatermarkProps, 'imageWidth' | 'imageHeight'> {
+  extends Omit<GenerateWatermarkProps, 'imageWidth' | 'imageHeight'> {
   file: Buffer;
 }
 

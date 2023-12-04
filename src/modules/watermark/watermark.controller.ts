@@ -12,7 +12,7 @@ import { Response } from 'express';
 import { Readable } from 'stream';
 
 import { WatermarkService } from './watermark.service';
-import { WatermarkBodyDto } from './watermark.dto';
+import { ImageWatermarkBodyDto, WatermarkBodyDto } from './watermark.dto';
 
 @Controller('watermark')
 export class WatermarkController {
@@ -20,7 +20,7 @@ export class WatermarkController {
 
   @UseInterceptors(AnyFilesInterceptor())
   @Post()
-  async setWatermark(
+  async setTextWatermark(
     @UploadedFiles() files: Express.Multer.File[],
     @Body() { text, ...options }: WatermarkBodyDto,
     @Res() response: Response,
@@ -30,6 +30,30 @@ export class WatermarkController {
         await this.watermarkService.createImageWithTextWatermark({
           file: files[0].buffer,
           text,
+          options,
+        });
+
+      const stream = Readable.from(imgWithWatermark);
+
+      stream.pipe(response);
+    } catch (error) {
+      console.log(error);
+      throw new BadRequestException(error);
+    }
+  }
+
+  @UseInterceptors(AnyFilesInterceptor())
+  @Post('/image')
+  async setImageWatermark(
+    @UploadedFiles() files: Express.Multer.File[],
+    @Body() options: ImageWatermarkBodyDto,
+    @Res() response: Response,
+  ) {
+    try {
+      const imgWithWatermark =
+        await this.watermarkService.createImageWithImageWatermark({
+          file: files[0].buffer,
+          watermark: files[1].buffer,
           options,
         });
 

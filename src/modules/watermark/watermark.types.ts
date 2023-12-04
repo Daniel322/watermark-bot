@@ -36,7 +36,17 @@ export type PositionType = keyof typeof POSITION_TYPES;
 
 export type SetPositionKeys = 'position' | 'imageHeight' | 'imageWidth';
 
-export type GenerateTextWatermarkProps = {
+export type SetTextWatermarkProps = {
+  file: Buffer;
+  text: string;
+  options?: Partial<GenerateWatermarkProps>;
+};
+
+export type SetImageWatermarkProps = Omit<SetTextWatermarkProps, 'text'> & {
+  watermark: Buffer;
+};
+
+export type GenerateWatermarkProps = {
   text: string;
   imageWidth: number;
   imageHeight: number;
@@ -48,6 +58,13 @@ export type GenerateTextWatermarkProps = {
   rotate?: number;
 };
 
+export type SetSizeToImageWatermarkProps = Omit<
+  GenerateWatermarkProps,
+  'text'
+> & {
+  watermark: Buffer;
+};
+
 export type GenerateRotateArgsKeys =
   | 'rotate'
   | 'position'
@@ -55,15 +72,9 @@ export type GenerateRotateArgsKeys =
   | 'imageHeight';
 
 export type GenerateRotateArgsProps = Pick<
-  GenerateTextWatermarkProps,
+  GenerateWatermarkProps,
   GenerateRotateArgsKeys
 >;
-
-export type SetTextWatermarkProps = {
-  file: Buffer;
-  text: string;
-  options?: Partial<GenerateTextWatermarkProps>;
-};
 
 export type GeneratePatternProps = {
   size: Size;

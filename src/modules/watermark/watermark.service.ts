@@ -3,7 +3,7 @@ import { Injectable } from '@nestjs/common';
 import * as sharp from 'sharp';
 import {
   GetFontSizeProps,
-  GenerateTextWatermarkProps,
+  GenerateWatermarkProps,
   GeneratePatternProps,
   SetTextWatermarkProps,
   WatermarkType,
@@ -15,11 +15,119 @@ import {
   CompositePosition,
   PositionType,
   DICTIONARY,
+  SetImageWatermarkProps,
+  SetSizeToImageWatermarkProps,
+  Size,
 } from './watermark.types';
 
 @Injectable()
 export class WatermarkService {
   constructor() {}
+
+  async createImageWithImageWatermark({
+    file,
+    watermark,
+    options: { position = 'topLeft', size = 's', type = 'single', ...options },
+  }: SetImageWatermarkProps) {
+    const { width, height }: sharp.Metadata = await sharp(file).metadata();
+
+    const sizedWatermark = await this.setOptionsToImageWatermark({
+      watermark,
+      imageHeight: height,
+      imageWidth: width,
+      size,
+      ...options,
+    });
+
+    const POSITION_COORDINATES_COEFFICIENTS = {
+      s: {
+        top: {
+          center: 0.45,
+          bottom: 0.9,
+        },
+        left: {
+          center: 0.45,
+          right: 0.9,
+        },
+      },
+      m: {
+        top: {
+          center: 0.4,
+          bottom: 0.8,
+        },
+        left: {
+          center: 0.4,
+          right: 0.8,
+        },
+      },
+      l: {
+        top: {
+          center: 0.35,
+          bottom: 0.7,
+        },
+        left: {
+          center: 0.35,
+          right: 0.7,
+        },
+      },
+    } as const;
+
+    const coefficients = POSITION_COORDINATES_COEFFICIENTS[size];
+
+    const POSITION_COORDINATES: Record<PositionType, CompositePosition> = {
+      topLeft: { top: 0, left: 0 },
+      topCenter: {
+        top: 0,
+        left: Math.floor(width * coefficients['left']['center']),
+      },
+      topRight: {
+        top: 0,
+        left: Math.floor(width * coefficients['left']['right']),
+      },
+      centerLeft: {
+        top: Math.floor(height * coefficients['top']['center']),
+        left: 0,
+      },
+      centerCenter: {
+        top: Math.floor(height * coefficients['top']['center']),
+        left: Math.floor(width * coefficients['left']['center']),
+      },
+      centerRight: {
+        top: Math.floor(height * coefficients['top']['center']),
+        left: Math.floor(width * coefficients['left']['right']),
+      },
+      bottomLeft: {
+        top: Math.floor(height * coefficients['top']['bottom']),
+        left: 0,
+      },
+      bottomCenter: {
+        top: Math.floor(height * coefficients['top']['bottom']),
+        left: Math.floor(width * coefficients['left']['center']),
+      },
+      bottomRight: {
+        top: Math.floor(height * coefficients['top']['bottom']),
+        left: Math.floor(width * coefficients['left']['right']),
+      },
+    };
+
+    const compositeOptions: CompositePosition = POSITION_COORDINATES[position];
+
+    if (type === 'single') {
+      return this.compositeImageAndWatermark(
+        file,
+        sizedWatermark,
+        compositeOptions,
+      );
+    } else {
+      return this.compositeImageAndWatermarkPattern({
+        image: file,
+        watermark: sizedWatermark,
+        size,
+        height,
+        width,
+      });
+    }
+  }
 
   async createImageWithTextWatermark({
     file,
@@ -30,7 +138,7 @@ export class WatermarkService {
   }: SetTextWatermarkProps): Promise<Buffer> {
     const { width, height }: sharp.Metadata = await sharp(file).metadata();
 
-    const generateOptions: GenerateTextWatermarkProps = {
+    const generateOptions: GenerateWatermarkProps = {
       text,
       imageHeight: height,
       imageWidth: width,
@@ -63,6 +171,73 @@ export class WatermarkService {
       .toBuffer();
   }
 
+  compositeImageAndWatermarkPattern({ image, watermark, size, height, width }) {
+    const patternsForComposite = {
+      s: { rows: 4, columns: 4 },
+      m: { rows: 3, columns: 3 },
+      l: { rows: 2, columns: 2 },
+    } as const;
+
+    const currentPattern = patternsForComposite[size];
+
+    const patternParts: sharp.OverlayOptions[] = [];
+    let top = 0;
+    for (let column = 0; column < currentPattern.columns; column++) {
+      let left = 0;
+      for (let row = 0; row < currentPattern.rows; row++) {
+        patternParts.push({ input: watermark, top, left });
+        left += Math.floor(width / currentPattern.rows);
+      }
+      top += Math.floor(height / currentPattern.columns);
+    }
+
+    return sharp(image).composite(patternParts).toBuffer();
+  }
+
+  async setOptionsToImageWatermark({
+    watermark,
+    imageWidth: width,
+    imageHeight: height,
+    size = 's',
+    opacity = 1,
+    rotate = 0,
+  }: SetSizeToImageWatermarkProps): Promise<Buffer> {
+    //TODO: move to constatns
+    const sizeCoefficients: Record<Size, number> = {
+      s: 0.1,
+      m: 0.2,
+      l: 0.3,
+    };
+
+    const withoutOpacity = 255;
+
+    const opacityBufferValue = Math.round(opacity * withoutOpacity);
+    const opacityBuffer = Buffer.alloc(width * height, opacityBufferValue);
+
+    const result = await sharp(watermark)
+      .png()
+      .resize(
+        Math.floor(width * sizeCoefficients[size]),
+        Math.floor(height * sizeCoefficients[size]),
+      )
+      .composite([
+        {
+          input: opacityBuffer,
+          raw: {
+            width: 1,
+            height: 1,
+            channels: 4,
+          },
+          tile: true,
+          blend: 'dest-in',
+        },
+      ])
+      .rotate(Number(rotate), { background: 'rgba(0,0,0,0)' })
+      .toBuffer();
+
+    return result;
+  }
+
   generateSingleWatermarkSvg({
     text,
     imageWidth,
@@ -72,7 +247,7 @@ export class WatermarkService {
     color = COLORS_TYPES.white,
     rotate = 0,
     position = POSITION_TYPES.topLeft,
-  }: GenerateTextWatermarkProps): Buffer {
+  }: GenerateWatermarkProps): Buffer {
     const fontSize = this.getFontSize({
       size,
       textLength: text.length,
@@ -132,7 +307,7 @@ export class WatermarkService {
     imageHeight,
     opacity = 1,
     color = COLORS_TYPES.white,
-  }: GenerateTextWatermarkProps): Buffer {
+  }: GenerateWatermarkProps): Buffer {
     const { weightCoefficient, x, y } = DICTIONARY[size];
 
     const fontSize = (imageWidth * weightCoefficient) / text.length;
