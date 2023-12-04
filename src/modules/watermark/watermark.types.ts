@@ -91,3 +91,11 @@ export type TransformValues = {
   translateX: number;
   translateY: number;
 };
+
+export type CompositeImageAndWatermarkPatternProps = {
+  image: Buffer;
+  watermark: Buffer;
+  height: number;
+  width: number;
+  size: Size;
+};

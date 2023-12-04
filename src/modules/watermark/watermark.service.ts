@@ -23,6 +23,7 @@ import {
   PositionType,
   SetImageWatermarkProps,
   SetSizeToImageWatermarkProps,
+  CompositeImageAndWatermarkPatternProps,
 } from './watermark.types';
 
 @Injectable()
@@ -39,6 +40,10 @@ export class WatermarkService {
       size = SIZES.s,
       type = WATERMARK_TYPES.single,
       ...options
+    } = {
+      type: WATERMARK_TYPES.single,
+      size: SIZES.s,
+      position: POSITION_TYPES.topLeft,
     },
   }: SetImageWatermarkProps): Promise<Buffer> {
     const { width, height } = await this.getImageMetadata(file);
@@ -115,8 +120,14 @@ export class WatermarkService {
     return sharp(image).composite(options).toBuffer();
   }
 
-  getImageMetadata(image: Buffer): Promise<sharp.Metadata> {
-    return sharp(image).metadata();
+  async getImageMetadata(image: Buffer): Promise<sharp.Metadata> {
+    try {
+      const metadata = await sharp(image).metadata();
+
+      return metadata;
+    } catch (error) {
+      throw new Error(error);
+    }
   }
 
   //METHODS FOR SET OPTIONS TO IMAGE WATERMARK
@@ -160,7 +171,13 @@ export class WatermarkService {
     return result;
   }
 
-  compositeImageAndWatermarkPattern({ image, watermark, size, height, width }) {
+  compositeImageAndWatermarkPattern({
+    image,
+    watermark,
+    size,
+    height,
+    width,
+  }: CompositeImageAndWatermarkPatternProps): Promise<Buffer> {
     const currentPattern = PATTERNS_FOR_COMPOSITE[size];
 
     const patternParts: sharp.OverlayOptions[] = [];
@@ -299,7 +316,12 @@ export class WatermarkService {
     const svg = `
     <svg width="${imageWidth}" height="${imageHeight}">
     <style>
-    .title { fill: rgba(${COLORS[color]}, ${opacity}); font-size: ${fontSize}px; font-weight: bold; textAlign: left }
+    .title {
+      fill: rgba(${COLORS[color]}, ${opacity});
+      font-size: ${fontSize}px;
+      font-weight: bold;
+      textAlign: left;
+    }
     </style>
     ${patternText}
     </svg>

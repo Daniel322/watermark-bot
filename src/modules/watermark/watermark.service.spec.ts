@@ -7,8 +7,8 @@ import { WatermarkService } from './watermark.service';
 import {
   GeneratePatternProps,
   GenerateWatermarkProps,
-  DICTIONARY,
 } from './watermark.types';
+import { DICTIONARY, SIZES } from './watermark.constants';
 
 describe('WatermarkService', () => {
   let service: WatermarkService;
@@ -108,14 +108,38 @@ describe('WatermarkService', () => {
 
     it('should be defined', async () => {
       expect(
-        await service.compositeImageAndWatermark(file, watermark),
+        await service.compositeImageAndWatermark(file, [
+          { input: watermark, top: 0, left: 0 },
+        ]),
       ).toBeDefined();
     });
 
     it('should be return a instance of buffer', async () => {
       expect(
-        await service.compositeImageAndWatermark(file, watermark),
+        await service.compositeImageAndWatermark(file, [
+          { input: watermark, top: 0, left: 0 },
+        ]),
       ).toBeInstanceOf(Buffer);
+    });
+  });
+
+  describe('getImageMetadata', () => {
+    const file = readFileSync(join(process.cwd(), '7000.png'));
+
+    it('shoul be defined', async () => {
+      expect(await service.getImageMetadata(file)).toBeDefined();
+    });
+
+    it('should return sharp metadata object', async () => {
+      expect(await service.getImageMetadata(file)).toHaveProperty('width');
+      expect(await service.getImageMetadata(file)).toHaveProperty('height');
+    });
+
+    it('should return error', async () => {
+      const badBuffer = Buffer.from([0, 0, 0, 0]);
+      expect(async () => {
+        await service.getImageMetadata(badBuffer);
+      }).rejects.toThrow();
     });
   });
 
@@ -130,6 +154,78 @@ describe('WatermarkService', () => {
     it('should be return a instance of buffer', async () => {
       expect(
         await service.createImageWithTextWatermark({ file, text: 'test' }),
+      ).toBeInstanceOf(Buffer);
+    });
+  });
+
+  describe('createImageWithImageWatermark', () => {
+    const file = readFileSync(join(process.cwd(), '7000.png'));
+
+    it('should be defined', async () => {
+      expect(
+        await service.createImageWithImageWatermark({
+          file,
+          watermark: file,
+        }),
+      ).toBeDefined();
+    });
+
+    it('should be return a instance of buffer', async () => {
+      expect(
+        await service.createImageWithImageWatermark({ file, watermark: file }),
+      ).toBeInstanceOf(Buffer);
+    });
+  });
+
+  describe('setOptionsToImageWatermark', () => {
+    const watermark = readFileSync(join(process.cwd(), '7000.png'));
+    const options: GenerateWatermarkProps = {
+      text: 'test',
+      imageWidth: 1000,
+      imageHeight: 1000,
+    };
+
+    it('should be defined', async () => {
+      expect(
+        await service.setOptionsToImageWatermark({ watermark, ...options }),
+      ).toBeDefined();
+    });
+
+    it('should be return a instance of buffer', async () => {
+      expect(
+        await service.setOptionsToImageWatermark({ watermark, ...options }),
+      ).toBeInstanceOf(Buffer);
+    });
+  });
+
+  describe('compositeImageAndWatermarkPattern', () => {
+    const watermark = readFileSync(join(process.cwd(), '7000.png'));
+    const image = watermark;
+    const size = SIZES.s;
+    const height = 1000;
+    const width = 1000;
+
+    it('should be defined', async () => {
+      expect(
+        await service.compositeImageAndWatermarkPattern({
+          watermark,
+          image,
+          size,
+          width,
+          height,
+        }),
+      ).toBeDefined();
+    });
+
+    it('should be return a instance of buffer', async () => {
+      expect(
+        await service.compositeImageAndWatermarkPattern({
+          watermark,
+          image,
+          size,
+          width,
+          height,
+        }),
       ).toBeInstanceOf(Buffer);
     });
   });
