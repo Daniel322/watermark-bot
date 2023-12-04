@@ -36,14 +36,14 @@ export class WatermarkService {
     file,
     watermark,
     options: {
-      position = POSITION_TYPES.topLeft,
+      position = POSITION_TYPES.centerCenter,
       size = SIZES.s,
       type = WATERMARK_TYPES.single,
       ...options
     } = {
       type: WATERMARK_TYPES.single,
       size: SIZES.s,
-      position: POSITION_TYPES.topLeft,
+      position: POSITION_TYPES.centerCenter,
     },
   }: SetImageWatermarkProps): Promise<Buffer> {
     const { width, height } = await this.getImageMetadata(file);
@@ -249,7 +249,7 @@ export class WatermarkService {
     opacity = 1,
     color = COLORS_TYPES.white,
     rotate = 0,
-    position = POSITION_TYPES.topLeft,
+    position = POSITION_TYPES.centerCenter,
   }: GenerateWatermarkProps): Buffer {
     const fontSize = this.getFontSize({
       size,
@@ -363,7 +363,7 @@ export class WatermarkService {
   getCoordUtil(
     value: Record<WatermarkType, Record<PositionType, number> | number>,
     type: WatermarkType,
-    position: PositionType = POSITION_TYPES.topLeft,
+    position: PositionType = POSITION_TYPES.centerCenter,
   ) {
     return type === WATERMARK_TYPES.pattern
       ? value[type]

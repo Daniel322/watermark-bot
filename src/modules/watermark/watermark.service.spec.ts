@@ -26,7 +26,7 @@ describe('WatermarkService', () => {
   });
 
   describe('getCoordUtil', () => {
-    it('should be return number or record with numbers of watermark type', () => {
+    it('should return number or record with numbers of watermark type', () => {
       const { x: xS, y: yS } = DICTIONARY['s'];
       const { x: xM, y: yM } = DICTIONARY['m'];
       const { x: xL, y: yL } = DICTIONARY['l'];
@@ -114,7 +114,7 @@ describe('WatermarkService', () => {
       ).toBeDefined();
     });
 
-    it('should be return a instance of buffer', async () => {
+    it('should return a instance of buffer', async () => {
       expect(
         await service.compositeImageAndWatermark(file, [
           { input: watermark, top: 0, left: 0 },
@@ -151,7 +151,7 @@ describe('WatermarkService', () => {
       ).toBeDefined();
     });
 
-    it('should be return a instance of buffer', async () => {
+    it('should return a instance of buffer', async () => {
       expect(
         await service.createImageWithTextWatermark({ file, text: 'test' }),
       ).toBeInstanceOf(Buffer);
@@ -170,7 +170,7 @@ describe('WatermarkService', () => {
       ).toBeDefined();
     });
 
-    it('should be return a instance of buffer', async () => {
+    it('should return a instance of buffer', async () => {
       expect(
         await service.createImageWithImageWatermark({ file, watermark: file }),
       ).toBeInstanceOf(Buffer);
@@ -191,7 +191,7 @@ describe('WatermarkService', () => {
       ).toBeDefined();
     });
 
-    it('should be return a instance of buffer', async () => {
+    it('should return a instance of buffer', async () => {
       expect(
         await service.setOptionsToImageWatermark({ watermark, ...options }),
       ).toBeInstanceOf(Buffer);
@@ -217,7 +217,7 @@ describe('WatermarkService', () => {
       ).toBeDefined();
     });
 
-    it('should be return a instance of buffer', async () => {
+    it('should return a instance of buffer', async () => {
       expect(
         await service.compositeImageAndWatermarkPattern({
           watermark,
