@@ -19,16 +19,22 @@ import {
   SetSizeToImageWatermarkProps,
   Size,
 } from './watermark.types';
+import {
+  POSITION_COORDINATES_COEFFICIENTS,
+  PATTERNS_FOR_COMPOSITE,
+} from './watermark.constants';
 
 @Injectable()
 export class WatermarkService {
   constructor() {}
 
+  //CORE METHODS FOR GENERATE WATERMARKS WITH TEXT OR IMAGE
+
   async createImageWithImageWatermark({
     file,
     watermark,
     options: { position = 'topLeft', size = 's', type = 'single', ...options },
-  }: SetImageWatermarkProps) {
+  }: SetImageWatermarkProps): Promise<Buffer> {
     const { width, height }: sharp.Metadata = await sharp(file).metadata();
 
     const sizedWatermark = await this.setOptionsToImageWatermark({
@@ -39,85 +45,20 @@ export class WatermarkService {
       ...options,
     });
 
-    const POSITION_COORDINATES_COEFFICIENTS = {
-      s: {
-        top: {
-          center: 0.45,
-          bottom: 0.9,
-        },
-        left: {
-          center: 0.45,
-          right: 0.9,
-        },
-      },
-      m: {
-        top: {
-          center: 0.4,
-          bottom: 0.8,
-        },
-        left: {
-          center: 0.4,
-          right: 0.8,
-        },
-      },
-      l: {
-        top: {
-          center: 0.35,
-          bottom: 0.7,
-        },
-        left: {
-          center: 0.35,
-          right: 0.7,
-        },
-      },
-    } as const;
-
-    const coefficients = POSITION_COORDINATES_COEFFICIENTS[size];
-
-    const POSITION_COORDINATES: Record<PositionType, CompositePosition> = {
-      topLeft: { top: 0, left: 0 },
-      topCenter: {
-        top: 0,
-        left: Math.floor(width * coefficients['left']['center']),
-      },
-      topRight: {
-        top: 0,
-        left: Math.floor(width * coefficients['left']['right']),
-      },
-      centerLeft: {
-        top: Math.floor(height * coefficients['top']['center']),
-        left: 0,
-      },
-      centerCenter: {
-        top: Math.floor(height * coefficients['top']['center']),
-        left: Math.floor(width * coefficients['left']['center']),
-      },
-      centerRight: {
-        top: Math.floor(height * coefficients['top']['center']),
-        left: Math.floor(width * coefficients['left']['right']),
-      },
-      bottomLeft: {
-        top: Math.floor(height * coefficients['top']['bottom']),
-        left: 0,
-      },
-      bottomCenter: {
-        top: Math.floor(height * coefficients['top']['bottom']),
-        left: Math.floor(width * coefficients['left']['center']),
-      },
-      bottomRight: {
-        top: Math.floor(height * coefficients['top']['bottom']),
-        left: Math.floor(width * coefficients['left']['right']),
-      },
-    };
-
-    const compositeOptions: CompositePosition = POSITION_COORDINATES[position];
-
     if (type === 'single') {
-      return this.compositeImageAndWatermark(
-        file,
-        sizedWatermark,
-        compositeOptions,
-      );
+      const coefficients = POSITION_COORDINATES_COEFFICIENTS[size];
+
+      const compositeOptions: CompositePosition =
+        this.generatePositionCoordinates({
+          height,
+          width,
+          coefficients,
+          position,
+        });
+
+      return this.compositeImageAndWatermark(file, [
+        { input: sizedWatermark, ...compositeOptions },
+      ]);
     } else {
       return this.compositeImageAndWatermarkPattern({
         image: file,
@@ -152,33 +93,24 @@ export class WatermarkService {
 
     const compositeOptions: CompositePosition = { top: 0, left: 0 };
 
-    const imageWithWatermark = await this.compositeImageAndWatermark(
-      file,
-      textWatermarkBuffer,
-      compositeOptions,
-    );
+    const imageWithWatermark = await this.compositeImageAndWatermark(file, [
+      { input: textWatermarkBuffer, ...compositeOptions },
+    ]);
 
     return imageWithWatermark;
   }
 
+  //METHOD FOR COMPOSITE ORIGINAL IMAGE WITH WATERMARK
+
   compositeImageAndWatermark(
     image: Buffer,
-    watermark: Buffer,
-    options: CompositePosition = { top: 0, left: 0 },
+    options: sharp.OverlayOptions[],
   ): Promise<Buffer> {
-    return sharp(image)
-      .composite([{ input: watermark, ...options }])
-      .toBuffer();
+    return sharp(image).composite(options).toBuffer();
   }
 
   compositeImageAndWatermarkPattern({ image, watermark, size, height, width }) {
-    const patternsForComposite = {
-      s: { rows: 4, columns: 4 },
-      m: { rows: 3, columns: 3 },
-      l: { rows: 2, columns: 2 },
-    } as const;
-
-    const currentPattern = patternsForComposite[size];
+    const currentPattern = PATTERNS_FOR_COMPOSITE[size];
 
     const patternParts: sharp.OverlayOptions[] = [];
     let top = 0;
@@ -191,7 +123,7 @@ export class WatermarkService {
       top += Math.floor(height / currentPattern.columns);
     }
 
-    return sharp(image).composite(patternParts).toBuffer();
+    return this.compositeImageAndWatermark(image, patternParts);
   }
 
   async setOptionsToImageWatermark({
@@ -349,6 +281,51 @@ export class WatermarkService {
     }
 
     return patternParts.join('');
+  }
+
+  generatePositionCoordinates({
+    height,
+    width,
+    position,
+    coefficients,
+  }): CompositePosition {
+    const POSITION_COORDINATES: Record<PositionType, CompositePosition> = {
+      topLeft: { top: 0, left: 0 },
+      topCenter: {
+        top: 0,
+        left: Math.floor(width * coefficients['left']['center']),
+      },
+      topRight: {
+        top: 0,
+        left: Math.floor(width * coefficients['left']['right']),
+      },
+      centerLeft: {
+        top: Math.floor(height * coefficients['top']['center']),
+        left: 0,
+      },
+      centerCenter: {
+        top: Math.floor(height * coefficients['top']['center']),
+        left: Math.floor(width * coefficients['left']['center']),
+      },
+      centerRight: {
+        top: Math.floor(height * coefficients['top']['center']),
+        left: Math.floor(width * coefficients['left']['right']),
+      },
+      bottomLeft: {
+        top: Math.floor(height * coefficients['top']['bottom']),
+        left: 0,
+      },
+      bottomCenter: {
+        top: Math.floor(height * coefficients['top']['bottom']),
+        left: Math.floor(width * coefficients['left']['center']),
+      },
+      bottomRight: {
+        top: Math.floor(height * coefficients['top']['bottom']),
+        left: Math.floor(width * coefficients['left']['right']),
+      },
+    };
+
+    return POSITION_COORDINATES[position];
   }
 
   getFontSize({ size = SIZES.s, textLength, imageWidth }: GetFontSizeProps) {
