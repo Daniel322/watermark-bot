@@ -1,26 +1,85 @@
 import { Injectable } from '@nestjs/common';
 
 import * as sharp from 'sharp';
+
+import {
+  COLORS,
+  COLORS_TYPES,
+  DICTIONARY,
+  PATTERNS_FOR_COMPOSITE,
+  POSITION_COORDINATES_COEFFICIENTS,
+  POSITION_TYPES,
+  SIZES,
+  SIZE_COEFFICIENTS,
+  WATERMARK_TYPES,
+} from './watermark.constants';
 import {
   GetFontSizeProps,
-  GenerateTextWatermarkProps,
+  GenerateWatermarkProps,
   GeneratePatternProps,
   SetTextWatermarkProps,
   WatermarkType,
-  COLORS,
-  WATERMARK_TYPES,
-  COLORS_TYPES,
-  SIZES,
-  POSITION_TYPES,
   CompositePosition,
-  TransformValues,
   PositionType,
-  DICTIONARY,
+  SetImageWatermarkProps,
+  SetSizeToImageWatermarkProps,
+  CompositeImageAndWatermarkPatternProps,
 } from './watermark.types';
 
 @Injectable()
 export class WatermarkService {
   constructor() {}
+
+  //CORE METHODS FOR GENERATE WATERMARKS WITH TEXT OR IMAGE
+
+  async createImageWithImageWatermark({
+    file,
+    watermark,
+    options: {
+      position = POSITION_TYPES.centerCenter,
+      size = SIZES.s,
+      type = WATERMARK_TYPES.single,
+      ...options
+    } = {
+      type: WATERMARK_TYPES.single,
+      size: SIZES.s,
+      position: POSITION_TYPES.centerCenter,
+    },
+  }: SetImageWatermarkProps): Promise<Buffer> {
+    const { width, height } = await this.getImageMetadata(file);
+
+    const sizedWatermark = await this.setOptionsToImageWatermark({
+      watermark,
+      imageHeight: height,
+      imageWidth: width,
+      size,
+      ...options,
+    });
+
+    if (type === WATERMARK_TYPES.single) {
+      const coefficients = POSITION_COORDINATES_COEFFICIENTS[size];
+
+      const compositeOptions: CompositePosition =
+        this.generatePositionCoordinates({
+          height,
+          width,
+          coefficients,
+          position,
+        });
+
+      return this.compositeImageAndWatermark(file, [
+        { input: sizedWatermark, ...compositeOptions },
+      ]);
+    } else {
+      return this.compositeImageAndWatermarkPattern({
+        image: file,
+        watermark: sizedWatermark,
+        size,
+        height,
+        width,
+      });
+    }
+  }
 
   async createImageWithTextWatermark({
     file,
@@ -29,9 +88,9 @@ export class WatermarkService {
       type: WATERMARK_TYPES.single,
     },
   }: SetTextWatermarkProps): Promise<Buffer> {
-    const { width, height }: sharp.Metadata = await sharp(file).metadata();
+    const { width, height } = await this.getImageMetadata(file);
 
-    const generateOptions: GenerateTextWatermarkProps = {
+    const generateOptions: GenerateWatermarkProps = {
       text,
       imageHeight: height,
       imageWidth: width,
@@ -45,24 +104,142 @@ export class WatermarkService {
 
     const compositeOptions: CompositePosition = { top: 0, left: 0 };
 
-    const imageWithWatermark = await this.compositeImageAndWatermark(
-      file,
-      textWatermarkBuffer,
-      compositeOptions,
-    );
+    const imageWithWatermark = await this.compositeImageAndWatermark(file, [
+      { input: textWatermarkBuffer, ...compositeOptions },
+    ]);
 
     return imageWithWatermark;
   }
 
+  //CORE SHARP METHODS
+
   compositeImageAndWatermark(
     image: Buffer,
-    watermark: Buffer,
-    options: CompositePosition = { top: 0, left: 0 },
+    options: sharp.OverlayOptions[],
   ): Promise<Buffer> {
-    return sharp(image)
-      .composite([{ input: watermark, ...options }])
-      .toBuffer();
+    return sharp(image).composite(options).toBuffer();
   }
+
+  async getImageMetadata(image: Buffer): Promise<sharp.Metadata> {
+    try {
+      const metadata = await sharp(image).metadata();
+
+      return metadata;
+    } catch (error) {
+      throw new Error(error);
+    }
+  }
+
+  //METHODS FOR SET OPTIONS TO IMAGE WATERMARK
+
+  async setOptionsToImageWatermark({
+    watermark,
+    imageWidth: width,
+    imageHeight: height,
+    size = SIZES.s,
+    opacity = 1,
+    rotate = 0,
+  }: SetSizeToImageWatermarkProps): Promise<Buffer> {
+    const withoutOpacity = 255;
+
+    const opacityBufferValue = Math.round(opacity * withoutOpacity);
+    const opacityBuffer = Buffer.alloc(width * height, opacityBufferValue);
+
+    const result = await sharp(watermark)
+      .png()
+      .resize({
+        width: Math.floor(width * SIZE_COEFFICIENTS[size]),
+        height: Math.floor(height * SIZE_COEFFICIENTS[size]),
+        fit: 'contain',
+        background: 'rgba(0,0,0,0)',
+      })
+      .composite([
+        {
+          input: opacityBuffer,
+          raw: {
+            width: 1,
+            height: 1,
+            channels: 4,
+          },
+          tile: true,
+          blend: 'dest-in',
+        },
+      ])
+      .rotate(Number(rotate), { background: 'rgba(0,0,0,0)' })
+      .toBuffer();
+
+    return result;
+  }
+
+  compositeImageAndWatermarkPattern({
+    image,
+    watermark,
+    size,
+    height,
+    width,
+  }: CompositeImageAndWatermarkPatternProps): Promise<Buffer> {
+    const currentPattern = PATTERNS_FOR_COMPOSITE[size];
+
+    const patternParts: sharp.OverlayOptions[] = [];
+    let top = Math.floor(height * 0.1);
+    for (let column = 0; column < currentPattern.columns; column++) {
+      let left = Math.floor(width * 0.1);
+      for (let row = 0; row < currentPattern.rows; row++) {
+        patternParts.push({ input: watermark, top, left });
+        left += Math.floor(width / currentPattern.rows);
+      }
+      top += Math.floor(height / currentPattern.columns);
+    }
+
+    return this.compositeImageAndWatermark(image, patternParts);
+  }
+
+  generatePositionCoordinates({
+    height,
+    width,
+    position,
+    coefficients,
+  }): CompositePosition {
+    const positionCoordinates: Record<PositionType, CompositePosition> = {
+      topLeft: { top: 0, left: 0 },
+      topCenter: {
+        top: 0,
+        left: Math.floor(width * coefficients['left']['center']),
+      },
+      topRight: {
+        top: 0,
+        left: Math.floor(width * coefficients['left']['right']),
+      },
+      centerLeft: {
+        top: Math.floor(height * coefficients['top']['center']),
+        left: 0,
+      },
+      centerCenter: {
+        top: Math.floor(height * coefficients['top']['center']),
+        left: Math.floor(width * coefficients['left']['center']),
+      },
+      centerRight: {
+        top: Math.floor(height * coefficients['top']['center']),
+        left: Math.floor(width * coefficients['left']['right']),
+      },
+      bottomLeft: {
+        top: Math.floor(height * coefficients['top']['bottom']),
+        left: 0,
+      },
+      bottomCenter: {
+        top: Math.floor(height * coefficients['top']['bottom']),
+        left: Math.floor(width * coefficients['left']['center']),
+      },
+      bottomRight: {
+        top: Math.floor(height * coefficients['top']['bottom']),
+        left: Math.floor(width * coefficients['left']['right']),
+      },
+    };
+
+    return positionCoordinates[position];
+  }
+
+  //METHODS FOR SET OPTIONS TO TEXT WATERMARK
 
   generateSingleWatermarkSvg({
     text,
@@ -72,8 +249,8 @@ export class WatermarkService {
     opacity = 1,
     color = COLORS_TYPES.white,
     rotate = 0,
-    position = POSITION_TYPES.topLeft,
-  }: GenerateTextWatermarkProps): Buffer {
+    position = POSITION_TYPES.centerCenter,
+  }: GenerateWatermarkProps): Buffer {
     const fontSize = this.getFontSize({
       size,
       textLength: text.length,
@@ -82,28 +259,35 @@ export class WatermarkService {
 
     const { x, y } = DICTIONARY[size];
 
-    const { translateX, translateY } = this.generateTransformTextValues(rotate);
-
     const svg = `
-      <svg width="${imageWidth}" height="${imageHeight}" style="border:2px solid red">
-      <rect x="0" y="0" width="${imageWidth}" height="${imageHeight}" style="fill:blue; stroke:pink; stroke-width:5; fill-opacity:0.1; stroke-opacity:0.9;" />
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="${imageWidth}"
+        height="${imageHeight}"
+        viewBox="0 0 ${imageWidth} ${imageHeight}"
+        class="svg"
+      >
       <style>
+      .svg {
+      }
       .title { fill: rgba(${COLORS[color]}, ${opacity});
       font-size: ${fontSize}px;
       font-weight: bold;
-      textAlign: left;
-      transform: rotate(${rotate}) translate(${translateX}, ${translateY});
+      text-align: left;
+      transform-box: content-box;
     }
       </style>
-      <text x="${this.getCoordUtil(
-        x,
-        WATERMARK_TYPES.single,
-        position,
-      )}%" y="${this.getCoordUtil(
-        y,
-        WATERMARK_TYPES.single,
-        position,
-      )}%" text-anchor="start" class="title">${text}</text>
+      <text
+        x="${this.getCoordUtil(x, WATERMARK_TYPES.single, position)}%"
+      y="${this.getCoordUtil(y, WATERMARK_TYPES.single, position)}%"
+      text-anchor="start"
+      filter="url(#solid)"
+      class="title"
+      id="text"
+      transform="rotate(${rotate})"
+    >
+      ${text}
+    </text>
       </svg>
     `;
 
@@ -117,7 +301,7 @@ export class WatermarkService {
     imageHeight,
     opacity = 1,
     color = COLORS_TYPES.white,
-  }: GenerateTextWatermarkProps): Buffer {
+  }: GenerateWatermarkProps): Buffer {
     const { weightCoefficient, x, y } = DICTIONARY[size];
 
     const fontSize = (imageWidth * weightCoefficient) / text.length;
@@ -132,7 +316,12 @@ export class WatermarkService {
     const svg = `
     <svg width="${imageWidth}" height="${imageHeight}">
     <style>
-    .title { fill: rgba(${COLORS[color]}, ${opacity}); font-size: ${fontSize}px; font-weight: bold; textAlign: left }
+    .title {
+      fill: rgba(${COLORS[color]}, ${opacity});
+      font-size: ${fontSize}px;
+      font-weight: bold;
+      textAlign: left;
+    }
     </style>
     ${patternText}
     </svg>
@@ -174,24 +363,10 @@ export class WatermarkService {
   getCoordUtil(
     value: Record<WatermarkType, Record<PositionType, number> | number>,
     type: WatermarkType,
-    position: PositionType = POSITION_TYPES.topLeft,
+    position: PositionType = POSITION_TYPES.centerCenter,
   ) {
     return type === WATERMARK_TYPES.pattern
       ? value[type]
       : value[type][position];
-  }
-
-  generateTransformTextValues(rotate: number): TransformValues {
-    if (rotate >= 0) {
-      return {
-        translateX: rotate > 10 ? rotate - 10 : 0,
-        translateY: 0,
-      };
-    } else {
-      return {
-        translateX: 0,
-        translateY: rotate <= -10 ? -(rotate * 2) : 0,
-      };
-    }
   }
 }

@@ -25,7 +25,7 @@ import {
   COLORS_TYPES,
   SIZES,
   WATERMARK_TYPES,
-} from '@modules/watermark/watermark.types';
+} from '@modules/watermark/watermark.constants';
 
 const makeTelegrafMock = () => {
   const tg = new Telegraf('');

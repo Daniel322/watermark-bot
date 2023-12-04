@@ -6,7 +6,7 @@ import {
   POSITION_TYPES,
   SIZES,
   WATERMARK_TYPES,
-} from '@modules/watermark/watermark.types';
+} from '@modules/watermark/watermark.constants';
 
 import { COLORS_T, SIZES_T, WATERMARK_TYPES_T } from './telegraf.translations';
 import { ACTIONS, EMOJI } from './telegraf.constants';

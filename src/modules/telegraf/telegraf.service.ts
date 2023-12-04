@@ -16,14 +16,16 @@ import { User } from '@telegraf/types';
 import { Bind } from '@common/decorators';
 import { WatermarkService } from '@modules/watermark/watermark.service';
 import {
-  COLORS_TYPES,
   Color,
   PositionType,
-  SIZES,
   Size,
-  WATERMARK_TYPES,
   WatermarkType,
 } from '@modules/watermark/watermark.types';
+import {
+  COLORS_TYPES,
+  SIZES,
+  WATERMARK_TYPES,
+} from '@modules/watermark/watermark.constants';
 
 import {
   ACTIONS,

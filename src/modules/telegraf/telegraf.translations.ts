@@ -2,7 +2,7 @@ import {
   COLORS_TYPES,
   SIZES,
   WATERMARK_TYPES,
-} from '@modules/watermark/watermark.types';
+} from '@modules/watermark/watermark.constants';
 import { BOT_STATES } from './telegraf.constants';
 
 export const COLORS_T: Record<keyof typeof COLORS_TYPES, string> = {
