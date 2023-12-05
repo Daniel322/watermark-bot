@@ -70,7 +70,7 @@ export class TelegrafUiServuce {
   get opacityKeyboard() {
     const buttons = [[], [], [], []];
 
-    for (let i = 10; i <= 100; i += 10) {
+    for (let i = 10; i <= 90; i += 10) {
       const length = buttons[buttons.length - 1].push(
         Markup.button.callback(`${i}%`, `${ACTIONS.OPACITY}|${i / 100}`),
       );
