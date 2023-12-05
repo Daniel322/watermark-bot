@@ -355,16 +355,25 @@ export class TelegrafService implements OnModuleInit, OnModuleDestroy {
         this.userStatesService.update(from.id, { color: data as Color });
       }
 
-      const { file, text, ...options } = this.userStatesService.getStateData(
-        from.id,
-      );
+      const { file, text, watermarkFile, ...options } =
+        this.userStatesService.getStateData(from.id);
 
-      const bufWithWatermark =
-        await this.watermarkService.createImageWithTextWatermark({
-          file,
-          text,
-          options,
-        });
+      let bufWithWatermark;
+      if (watermarkFile != null) {
+        bufWithWatermark =
+          await this.watermarkService.createImageWithImageWatermark({
+            file,
+            watermark: watermarkFile,
+            options,
+          });
+      } else {
+        bufWithWatermark =
+          await this.watermarkService.createImageWithTextWatermark({
+            file,
+            text,
+            options,
+          });
+      }
 
       await Promise.all([
         ctx.editMessageText(MESSAGES.COMPLETE),

@@ -88,6 +88,15 @@ const makeTelegrafUserStateServiceMock = () => ({
   add: jest.fn(),
 });
 
+const makeWatermarkServiceMock = () => ({
+  createImageWithTextWatermark: jest.fn(({ file }) => {
+    return file;
+  }),
+  createImageWithImageWatermark: jest.fn(({ watermark }) => {
+    return watermark;
+  }),
+});
+
 describe('TelegrafService', () => {
   let service: TelegrafService;
 
@@ -96,6 +105,7 @@ describe('TelegrafService', () => {
   const httpService = makeHttpServiceMock();
   const telegrafUiServuce = makeTelefrafUiServiceMock();
   const telegrafUsersStatesService = makeTelegrafUserStateServiceMock();
+  const watermarkService = makeWatermarkServiceMock();
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -108,11 +118,7 @@ describe('TelegrafService', () => {
         },
         {
           provide: WatermarkService,
-          useValue: {
-            createImageWithTextWatermark({ file }): Buffer {
-              return file;
-            },
-          },
+          useValue: watermarkService,
         },
         {
           provide: CACHE_MANAGER,
@@ -600,6 +606,42 @@ describe('TelegrafService', () => {
       expect(ctx.replyWithPhoto).toHaveBeenCalledWith(
         expect.objectContaining({ source: buf }),
       );
+    });
+
+    it('Should call createImageWithImageWatermark if watermark file was given', async () => {
+      const ctx = makeTelegrafMockContext({
+        callback_query: { data: '1', from: { id: Date.now() } },
+      });
+      telegrafUsersStatesService.hasState = jest.fn(() => true);
+
+      telegrafUsersStatesService.getStateData = jest.fn(() => ({
+        file: Buffer.from('test'),
+        watermarkFile: Buffer.from('test'),
+      }));
+
+      watermarkService.createImageWithImageWatermark.mockClear();
+
+      await service.onColor(ctx);
+
+      expect(watermarkService.createImageWithImageWatermark).toHaveBeenCalled();
+    });
+
+    it('Should call createImageWithTextWatermark if watermark text was given', async () => {
+      const ctx = makeTelegrafMockContext({
+        callback_query: { data: '1', from: { id: Date.now() } },
+      });
+      telegrafUsersStatesService.hasState = jest.fn(() => true);
+
+      telegrafUsersStatesService.getStateData = jest.fn(() => ({
+        file: Buffer.from('test'),
+        watermarkFile: null,
+      }));
+
+      watermarkService.createImageWithTextWatermark.mockClear();
+
+      await service.onColor(ctx);
+
+      expect(watermarkService.createImageWithTextWatermark).toHaveBeenCalled();
     });
   });
 
