@@ -1,3 +1,4 @@
+// eslint-disable-next-line @typescript-eslint/ban-types
 export const Bind = <T extends Function>(
   target: object,
   propertyKey: string,

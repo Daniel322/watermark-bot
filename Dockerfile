@@ -4,7 +4,7 @@ WORKDIR /app
 
 COPY package.json ./
 COPY package-lock.json ./
-RUN npm ci
+RUN npm ci --omit=dev
 COPY . .
 RUN npm run prebuild && npm run build && npm prune --production
 
@@ -16,4 +16,4 @@ COPY --from=BASEIMAGE /app/node_modules /app/node_modules
 
 EXPOSE 3100
 
-CMD ["/bin/sh", "-c", "npm run start"]
+CMD ["/bin/sh", "-c", "npm run start:prod"]
