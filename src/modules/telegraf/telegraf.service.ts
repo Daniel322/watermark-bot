@@ -85,6 +85,7 @@ export class TelegrafService implements OnModuleInit, OnModuleDestroy {
     this.bot.action(Object.values(SIZES), this.onSize);
     this.bot.action(new RegExp(ACTIONS.OPACITY), this.onOpacity);
     this.bot.action(new RegExp(ACTIONS.POSITION), this.onPosition);
+    this.bot.action(new RegExp(ACTIONS.SKIP), this.onSkip);
   }
 
   @Bind
@@ -105,21 +106,46 @@ export class TelegrafService implements OnModuleInit, OnModuleDestroy {
 
       if (file == null) throw new Error(SYS_MESSAGES.NO_FILE_IN_MESSAGE);
 
-      this.userStatesService.add(from.id);
+      const hasState = this.userStatesService.hasState(from.id);
 
       const fileLink = await this.bot.telegram.getFileLink(file.file_id);
       const arrayBuffer = await this.getFile(fileLink.href);
-
-      this.userStatesService.update(from.id, {
-        file: Buffer.from(arrayBuffer),
-      });
-      this.userStatesService.goto(from.id, BOT_STATES.ADD_TEXT);
-
-      await ctx.reply(MESSAGES.ASK_TEXT);
+      if (hasState) {
+        const state = this.userStatesService.getState(from.id);
+        if (state === BOT_STATES.ADD_WATERMARK) {
+          return this.onWatermarkPhoto(ctx, from.id, Buffer.from(arrayBuffer));
+        }
+      }
+      return this.onBackgroundPhoto(ctx, from.id, Buffer.from(arrayBuffer));
     } catch (error) {
+      console.log(error);
       this.logger.error(error.message);
       await ctx.reply(MESSAGES.BAD_REQUEST);
     }
+  }
+
+  onBackgroundPhoto(ctx, userId: number, file: Buffer): void {
+    this.userStatesService.add(userId);
+
+    this.userStatesService.update(userId, {
+      file,
+    });
+    this.userStatesService.goto(userId, BOT_STATES.ADD_WATERMARK);
+
+    ctx.reply(MESSAGES.ASK_WATERMARK);
+  }
+
+  onWatermarkPhoto(ctx, id: number, file: Buffer): void {
+    if (!this.tryTransistToGivenState(ctx, id, BOT_STATES.CHOOSE_WM_TYPE)) {
+      return;
+    }
+
+    this.userStatesService.update(id, { watermarkFile: file });
+
+    ctx.replyWithMarkdownV2(
+      MESSAGES.CHOOSE_PLACEMENT_STYLE,
+      this.uiService.patternTypeKeyboard,
+    );
   }
 
   @Bind
@@ -138,7 +164,7 @@ export class TelegrafService implements OnModuleInit, OnModuleDestroy {
 
       const state = this.userStatesService.getState(from.id);
 
-      if (state === BOT_STATES.ADD_TEXT) {
+      if (state === BOT_STATES.ADD_WATERMARK) {
         return this.onWatermarkText(ctx, from.id, text);
       }
       if (state === BOT_STATES.CHOOSE_ROTATION) {
@@ -325,18 +351,29 @@ export class TelegrafService implements OnModuleInit, OnModuleDestroy {
         return this.stateNotFoundReply(ctx);
       }
 
-      this.userStatesService.update(from.id, { color: data as Color });
+      if (data != null) {
+        this.userStatesService.update(from.id, { color: data as Color });
+      }
 
-      const { file, text, ...options } = this.userStatesService.getStateData(
-        from.id,
-      );
+      const { file, text, watermarkFile, ...options } =
+        this.userStatesService.getStateData(from.id);
 
-      const bufWithWatermark =
-        await this.watermarkService.createImageWithTextWatermark({
-          file,
-          text,
-          options,
-        });
+      let bufWithWatermark;
+      if (watermarkFile != null) {
+        bufWithWatermark =
+          await this.watermarkService.createImageWithImageWatermark({
+            file,
+            watermark: watermarkFile,
+            options,
+          });
+      } else {
+        bufWithWatermark =
+          await this.watermarkService.createImageWithTextWatermark({
+            file,
+            text,
+            options,
+          });
+      }
 
       await Promise.all([
         ctx.editMessageText(MESSAGES.COMPLETE),
@@ -392,6 +429,43 @@ export class TelegrafService implements OnModuleInit, OnModuleDestroy {
       ctx.editMessageText(MESSAGES.USER_STATE_NOT_FOUND);
     } else {
       ctx.reply(MESSAGES.USER_STATE_NOT_FOUND);
+    }
+  }
+
+  @Bind
+  onSkip(ctx): void {
+    try {
+      if (!('data' in ctx.callbackQuery)) {
+        throw new Error(SYS_MESSAGES.NO_DATA_ON_CHANGE_SIZE);
+      }
+      const { data } = ctx.callbackQuery;
+      const [, toState] = data.split('|');
+
+      const message = MESSAGES[toState];
+      let keyboard;
+
+      if (toState == null) {
+        ctx.callbackQuery.data = null;
+        this.onColor(ctx);
+        return;
+      }
+
+      if (toState === BOT_STATES.CHOOSE_POSITION) {
+        keyboard = this.uiService.positionKeyboard;
+      } else if (toState === BOT_STATES.CHOOSE_SIZE) {
+        keyboard = this.uiService.sizeKeyboard;
+      } else if (toState === BOT_STATES.CHOOSE_OPACITY) {
+        keyboard = this.uiService.opacityKeyboard;
+      } else if (toState === BOT_STATES.CHOOSE_COLOR) {
+        keyboard = this.uiService.colorKeyboard;
+      } else {
+        throw new Error(SYS_MESSAGES.UNHANDLED_STATE_TO_SKIP);
+      }
+
+      ctx.editMessageText(message, keyboard);
+    } catch (error) {
+      this.logger.error(error.message);
+      ctx.reply(MESSAGES.BAD_REQUEST);
     }
   }
 }

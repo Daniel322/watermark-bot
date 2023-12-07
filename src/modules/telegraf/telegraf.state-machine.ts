@@ -3,14 +3,10 @@ import { BotStates, SelectedOptions } from './telegraf.types';
 
 export class BotStateMachine {
   static transitions = [
-    { from: BOT_STATES.ADD_BG_PIC, to: BOT_STATES.ADD_TEXT },
-    { from: BOT_STATES.ADD_BG_PIC, to: BOT_STATES.ADD_PIC },
-    { from: BOT_STATES.ADD_TEXT, to: BOT_STATES.CHOOSE_WM_TYPE },
-    { from: BOT_STATES.ADD_PIC, to: BOT_STATES.CHOOSE_WM_TYPE },
+    { from: BOT_STATES.ADD_BG_PIC, to: BOT_STATES.ADD_WATERMARK },
+    { from: BOT_STATES.ADD_WATERMARK, to: BOT_STATES.CHOOSE_WM_TYPE },
     { from: BOT_STATES.CHOOSE_WM_TYPE, to: BOT_STATES.CHOOSE_POSITION },
     { from: BOT_STATES.CHOOSE_POSITION, to: BOT_STATES.CHOOSE_SIZE },
-    // { from: BOT_STATES.CHOOSE_POSITION, to: BOT_STATES.CHOOSE_ROTATION },
-    // { from: BOT_STATES.CHOOSE_ROTATION, to: BOT_STATES.CHOOSE_SIZE },
     { from: BOT_STATES.CHOOSE_SIZE, to: BOT_STATES.CHOOSE_OPACITY },
     { from: BOT_STATES.CHOOSE_OPACITY, to: BOT_STATES.CHOOSE_COLOR },
   ];

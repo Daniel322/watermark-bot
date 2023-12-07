@@ -9,7 +9,7 @@ import {
 } from '@modules/watermark/watermark.constants';
 
 import { COLORS_T, SIZES_T, WATERMARK_TYPES_T } from './telegraf.translations';
-import { ACTIONS, EMOJI } from './telegraf.constants';
+import { ACTIONS, BOT_STATES, EMOJI } from './telegraf.constants';
 
 @Injectable()
 export class TelegrafUiServuce {
@@ -21,7 +21,15 @@ export class TelegrafUiServuce {
       const val = SIZES[key];
       buttons.push(Markup.button.callback(text, val));
     }
-    return Markup.inlineKeyboard([buttons]);
+    return Markup.inlineKeyboard([
+      buttons,
+      [
+        Markup.button.callback(
+          'Пропустить',
+          `${ACTIONS.SKIP}|${BOT_STATES.CHOOSE_OPACITY}`,
+        ),
+      ],
+    ]);
   }
 
   get colorKeyboard() {
@@ -33,7 +41,10 @@ export class TelegrafUiServuce {
       buttons.push(Markup.button.callback(text, val));
     }
 
-    return Markup.inlineKeyboard([buttons]);
+    return Markup.inlineKeyboard([
+      buttons,
+      [Markup.button.callback('Пропустить', ACTIONS.SKIP)],
+    ]);
   }
 
   get patternTypeKeyboard() {
@@ -45,19 +56,32 @@ export class TelegrafUiServuce {
       buttons.push(Markup.button.callback(text, val));
     }
 
-    return Markup.inlineKeyboard([buttons]);
+    return Markup.inlineKeyboard([
+      buttons,
+      [
+        Markup.button.callback(
+          'Пропустить',
+          `${ACTIONS.SKIP}|${BOT_STATES.CHOOSE_POSITION}`,
+        ),
+      ],
+    ]);
   }
 
   get opacityKeyboard() {
     const buttons = [[], [], [], []];
 
-    for (let i = 10; i <= 100; i += 10) {
+    for (let i = 10; i <= 90; i += 10) {
       const length = buttons[buttons.length - 1].push(
         Markup.button.callback(`${i}%`, `${ACTIONS.OPACITY}|${i / 100}`),
       );
       if (length === 3) buttons.push([]);
     }
-
+    buttons.push([
+      Markup.button.callback(
+        'Пропустить',
+        `${ACTIONS.SKIP}|${BOT_STATES.CHOOSE_COLOR}`,
+      ),
+    ]);
     return Markup.inlineKeyboard(buttons);
   }
 
@@ -103,6 +127,12 @@ export class TelegrafUiServuce {
         Markup.button.callback(
           EMOJI.BOTTOM_RIGTH_ARROW,
           `${ACTIONS.POSITION}|${POSITION_TYPES.bottomRight}`,
+        ),
+      ],
+      [
+        Markup.button.callback(
+          'Пропустить',
+          `${ACTIONS.SKIP}|${BOT_STATES.CHOOSE_SIZE}`,
         ),
       ],
     ]);

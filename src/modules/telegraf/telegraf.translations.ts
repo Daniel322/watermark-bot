@@ -23,8 +23,7 @@ export const SIZES_T: Record<keyof typeof SIZES, string> = {
 
 export const BOT_STATES_T: Record<keyof typeof BOT_STATES, string> = {
   ADD_BG_PIC: 'добавление изображения',
-  ADD_TEXT: 'добавления текста',
-  ADD_PIC: 'выбора картинки',
+  ADD_WATERMARK: 'добавления водяного знака',
   CHOOSE_WM_TYPE: 'выбора стиля расположения',
   CHOOSE_SIZE: 'выбора размера',
   CHOOSE_OPACITY: 'выбора прозрачности',

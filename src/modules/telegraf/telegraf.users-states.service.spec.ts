@@ -94,7 +94,7 @@ describe('TelegrafUsersStatesService', () => {
 
   describe('goto', () => {
     it('Should return false if user state was not found', () => {
-      expect(service.goto(1, BOT_STATES.ADD_TEXT)).toBeFalsy();
+      expect(service.goto(1, BOT_STATES.ADD_WATERMARK)).toBeFalsy();
     });
 
     it('Should return true if it transisted to the state', () => {
@@ -103,7 +103,7 @@ describe('TelegrafUsersStatesService', () => {
 
       fsmsMock.set(1, { goto: () => null });
 
-      expect(service.goto(1, BOT_STATES.ADD_TEXT)).toBeTruthy();
+      expect(service.goto(1, BOT_STATES.ADD_WATERMARK)).toBeTruthy();
     });
 
     it('Should return false if fms.goto rise an error', () => {
@@ -116,7 +116,7 @@ describe('TelegrafUsersStatesService', () => {
         },
       });
 
-      expect(service.goto(1, BOT_STATES.ADD_TEXT)).toBeFalsy();
+      expect(service.goto(1, BOT_STATES.ADD_WATERMARK)).toBeFalsy();
     });
   });
 });
