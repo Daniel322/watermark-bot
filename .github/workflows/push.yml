@@ -10,7 +10,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: Docker login
-        run: printf '%s\n' '${{ secrets.DOCKER_PASSWORD }}' | docker login ${{ vars.DOCKER_REGISTRY }} -u ${{ vars.DOCKER_USER }} --password-stdin
+        run: printf '%s\n' '${{ secrets.DOCKER_PASSWORD }}' | docker login -u ${{ vars.DOCKER_USER }} --password-stdin
       - name: Build
         run: docker build -t watermark-bot -f ./Dockerfile .
       - name: Tags
