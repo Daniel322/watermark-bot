@@ -22,5 +22,5 @@ jobs:
             cd /home/devops/watermark_bot
             printf '%s\n' '${{ secrets.DOCKER_PASSWORD }}' | docker login -u ${{ vars.DOCKER_USER }} --password-stdin
             docker pull ${{ vars.DOCKER_REGISTRY }}/watermark-bot:latest
-            docker run --env-file ./.env.production  ${{ vars.DOCKER_REGISTRY }}/watermark-bot 
+            docker run --env-file ./.env.production --name watermark-bot  ${{ vars.DOCKER_REGISTRY }}/watermark-bot 
             docker logout ${{ vars.DOCKER_REGISTRY }}
