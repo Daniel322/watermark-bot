@@ -20,6 +20,8 @@ jobs:
           key: ${{ secrets.PRODUCTION_SSH_KEY }}
           script: |
             cd /home/devops/watermark_bot
+            docker stop watermark-bot
+            docker remove watermark-bot
             printf '%s\n' '${{ secrets.DOCKER_PASSWORD }}' | docker login -u ${{ vars.DOCKER_USER }} --password-stdin
             docker pull ${{ vars.DOCKER_REGISTRY }}/watermark-bot:latest
             docker run --env-file ./.env.production --name watermark-bot -d  ${{ vars.DOCKER_REGISTRY }}/watermark-bot 
