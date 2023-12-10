@@ -438,7 +438,7 @@ export class TelegrafService implements OnModuleInit, OnModuleDestroy {
       if (!('data' in ctx.callbackQuery)) {
         throw new Error(SYS_MESSAGES.NO_DATA_ON_CHANGE_SIZE);
       }
-      const { data } = ctx.callbackQuery;
+      const { data, from } = ctx.callbackQuery;
       const [, toState] = data.split('|');
 
       const message = MESSAGES[toState];
@@ -449,6 +449,8 @@ export class TelegrafService implements OnModuleInit, OnModuleDestroy {
         this.onColor(ctx);
         return;
       }
+
+      this.userStatesService.goto(from.id, toState);
 
       if (toState === BOT_STATES.CHOOSE_POSITION) {
         keyboard = this.uiService.positionKeyboard;
