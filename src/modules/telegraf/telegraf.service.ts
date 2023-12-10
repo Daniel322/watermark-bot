@@ -23,6 +23,7 @@ import {
 } from '@modules/watermark/watermark.types';
 import {
   COLORS_TYPES,
+  POSITION_TYPES,
   SIZES,
   WATERMARK_TYPES,
 } from '@modules/watermark/watermark.constants';
@@ -80,6 +81,7 @@ export class TelegrafService implements OnModuleInit, OnModuleDestroy {
     this.bot.command(COMMANDS.HELP, this.onHelp);
     this.bot.on(message(EVENTS.MESSAGES.PHOTO), this.onPhoto);
     this.bot.on(message(EVENTS.MESSAGES.TEXT), this.onText);
+    this.bot.on(message(EVENTS.MESSAGES.DOCUMENT), this.onDocument);
     this.bot.action(Object.values(COLORS_TYPES), this.onColor);
     this.bot.action(Object.values(WATERMARK_TYPES), this.onPlacementStyle);
     this.bot.action(Object.values(SIZES), this.onSize);
@@ -91,6 +93,24 @@ export class TelegrafService implements OnModuleInit, OnModuleDestroy {
   @Bind
   onStart(ctx: Context): void {
     ctx.reply(MESSAGES.WELCOME);
+  }
+
+  @Bind
+  async onDocument(ctx: Context) {
+    try {
+      if (!('document' in ctx.message)) {
+        throw new Error(SYS_MESSAGES.NO_DOCUMENT_IN_MESSAGE);
+      }
+
+      const { from, document } = ctx.message;
+      if (document.mime_type.includes('image')) {
+        return this.processPhoto(ctx, from.id, document.file_id);
+      }
+      ctx.reply(MESSAGES.ONLY_IMAGES_AVAILABILE);
+    } catch (error) {
+      this.logger.error(error.message);
+      await ctx.reply(MESSAGES.BAD_REQUEST);
+    }
   }
 
   @Bind
@@ -106,22 +126,25 @@ export class TelegrafService implements OnModuleInit, OnModuleDestroy {
 
       if (file == null) throw new Error(SYS_MESSAGES.NO_FILE_IN_MESSAGE);
 
-      const hasState = this.userStatesService.hasState(from.id);
-
-      const fileLink = await this.bot.telegram.getFileLink(file.file_id);
-      const arrayBuffer = await this.getFile(fileLink.href);
-      if (hasState) {
-        const state = this.userStatesService.getState(from.id);
-        if (state === BOT_STATES.ADD_WATERMARK) {
-          return this.onWatermarkPhoto(ctx, from.id, Buffer.from(arrayBuffer));
-        }
-      }
-      return this.onBackgroundPhoto(ctx, from.id, Buffer.from(arrayBuffer));
+      return this.processPhoto(ctx, from.id, file.file_id);
     } catch (error) {
-      console.log(error);
       this.logger.error(error.message);
       await ctx.reply(MESSAGES.BAD_REQUEST);
     }
+  }
+
+  async processPhoto(ctx: Context, userId: number, fileId: string) {
+    const hasState = this.userStatesService.hasState(userId);
+
+    const fileLink = await this.bot.telegram.getFileLink(fileId);
+    const arrayBuffer = await this.getFile(fileLink.href);
+    if (hasState) {
+      const state = this.userStatesService.getState(userId);
+      if (state === BOT_STATES.ADD_WATERMARK) {
+        return this.onWatermarkPhoto(ctx, userId, Buffer.from(arrayBuffer));
+      }
+    }
+    return this.onBackgroundPhoto(ctx, userId, Buffer.from(arrayBuffer));
   }
 
   onBackgroundPhoto(ctx, userId: number, file: Buffer): void {
@@ -454,7 +477,10 @@ export class TelegrafService implements OnModuleInit, OnModuleDestroy {
 
       const stateData = this.userStatesService.getStateData(from.id);
 
-      if (toState == null || stateData.watermarkFile != null) {
+      if (
+        toState == null ||
+        (stateData.watermarkFile != null && toState === BOT_STATES.CHOOSE_COLOR)
+      ) {
         ctx.callbackQuery.data = null;
         this.onColor(ctx);
         return;
