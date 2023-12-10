@@ -521,6 +521,21 @@ describe('TelegrafService', () => {
         telegrafUiServuce.positionKeyboard,
       );
     });
+
+    it('Should call onPosition if pattern type was selected', () => {
+      const ctx = makeTelegrafMockContext({
+        callback_query: {
+          data: WATERMARK_TYPES.pattern,
+          from: { id: Date.now() },
+        },
+      });
+      service.tryTransistToGivenState = jest.fn(() => true);
+      telegrafUsersStatesService.hasState = jest.fn(() => true);
+
+      jest.spyOn(service, 'onPosition');
+      service.onPlacementStyle(ctx);
+      expect(service.onPosition).toHaveBeenCalled();
+    });
   });
 
   describe('onPosition', () => {

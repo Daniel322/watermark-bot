@@ -256,6 +256,10 @@ export class TelegrafService implements OnModuleInit, OnModuleDestroy {
 
       this.userStatesService.update(from.id, { type: data as WatermarkType });
 
+      if (data === WATERMARK_TYPES.pattern) {
+        return this.onPosition(ctx);
+      }
+
       ctx.editMessageText(
         MESSAGES.CHOOSE_POSITION,
         this.uiService.positionKeyboard,
