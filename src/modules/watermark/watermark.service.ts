@@ -167,7 +167,6 @@ export class WatermarkService {
           blend: 'dest-in',
         },
       ])
-      .unflatten()
       .rotate(Number(rotate), { background: 'rgba(0,0,0,0)' })
       .toBuffer();
 
