@@ -330,7 +330,15 @@ export class TelegrafService implements OnModuleInit, OnModuleDestroy {
 
       this.userStatesService.update(from.id, { opacity: Number(rawOpacity) });
 
-      ctx.editMessageText(MESSAGES.CHOOSE_COLOR, this.uiService.colorKeyboard);
+      const stateData = this.userStatesService.getStateData(from.id);
+      if (stateData.watermarkFile != null) {
+        this.onColor(ctx);
+      } else {
+        ctx.editMessageText(
+          MESSAGES.CHOOSE_COLOR,
+          this.uiService.colorKeyboard,
+        );
+      }
     } catch (error) {
       this.logger.error(error.message);
       ctx.reply(MESSAGES.BAD_REQUEST);
@@ -444,7 +452,9 @@ export class TelegrafService implements OnModuleInit, OnModuleDestroy {
       const message = MESSAGES[toState];
       let keyboard;
 
-      if (toState == null) {
+      const stateData = this.userStatesService.getStateData(from.id);
+
+      if (toState == null || stateData.watermarkFile != null) {
         ctx.callbackQuery.data = null;
         this.onColor(ctx);
         return;

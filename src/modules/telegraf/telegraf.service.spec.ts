@@ -554,12 +554,13 @@ describe('TelegrafService', () => {
       expect(service.onOpacity(ctx)).toBeUndefined();
     });
 
-    it('Should reply with CHOOSE_COLOR if it transist to given state', () => {
+    it('Should reply with CHOOSE_COLOR if it transist to given state and watemark file is null', () => {
       const ctx = makeTelegrafMockContext({
         callback_query: { data: 'test', from: { id: Date.now() } },
       });
       service.tryTransistToGivenState = jest.fn(() => true);
       telegrafUsersStatesService.hasState = jest.fn(() => true);
+      telegrafUsersStatesService.getStateData = jest.fn(() => ({}));
 
       service.onOpacity(ctx);
 
@@ -567,6 +568,23 @@ describe('TelegrafService', () => {
         MESSAGES.CHOOSE_COLOR,
         telegrafUiServuce.colorKeyboard,
       );
+    });
+
+    it('Should call onColor if watermark file is not null', () => {
+      const ctx = makeTelegrafMockContext({
+        callback_query: { data: 'test', from: { id: Date.now() } },
+      });
+      service.tryTransistToGivenState = jest.fn(() => true);
+      telegrafUsersStatesService.hasState = jest.fn(() => true);
+      telegrafUsersStatesService.getStateData = jest.fn(() => ({
+        watermarkFile: Buffer.from('A'),
+      }));
+
+      jest.spyOn(service, 'onColor');
+
+      service.onOpacity(ctx);
+
+      expect(service.onColor).toHaveBeenCalledWith(ctx);
     });
   });
 
