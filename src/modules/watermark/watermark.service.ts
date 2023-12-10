@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 
 import * as sharp from 'sharp';
 
@@ -28,6 +28,7 @@ import {
 
 @Injectable()
 export class WatermarkService {
+  private readonly logger = new Logger(WatermarkService.name);
   constructor() {}
 
   //CORE METHODS FOR GENERATE WATERMARKS WITH TEXT OR IMAGE
@@ -88,6 +89,7 @@ export class WatermarkService {
       type: WATERMARK_TYPES.single,
     },
   }: SetTextWatermarkProps): Promise<Buffer> {
+    this.logger.log(`text in createImage with watermark -> ${text}`);
     const { width, height } = await this.getImageMetadata(file);
 
     const generateOptions: GenerateWatermarkProps = {
@@ -165,6 +167,7 @@ export class WatermarkService {
           blend: 'dest-in',
         },
       ])
+      .unflatten()
       .rotate(Number(rotate), { background: 'rgba(0,0,0,0)' })
       .toBuffer();
 
@@ -291,6 +294,8 @@ export class WatermarkService {
       </svg>
     `;
 
+    this.logger.log(`generated svg in generateSingleWatermarkSvg -> ${svg}`);
+
     return Buffer.from(svg);
   }
 
@@ -313,6 +318,10 @@ export class WatermarkService {
       y: this.getCoordUtil(y, WATERMARK_TYPES.pattern),
     });
 
+    this.logger.log(
+      `generated svg pattern in generatePattern -> ${patternText}`,
+    );
+
     const svg = `
     <svg width="${imageWidth}" height="${imageHeight}">
     <style>
@@ -326,6 +335,8 @@ export class WatermarkService {
     ${patternText}
     </svg>
   `;
+
+    this.logger.log(`generated svg in generatePatternWatermarkSvg -> ${svg}`);
 
     return Buffer.from(svg);
   }
