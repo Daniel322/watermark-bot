@@ -23,7 +23,6 @@ import {
 } from '@modules/watermark/watermark.types';
 import {
   COLORS_TYPES,
-  POSITION_TYPES,
   SIZES,
   WATERMARK_TYPES,
 } from '@modules/watermark/watermark.constants';
