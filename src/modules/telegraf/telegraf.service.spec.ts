@@ -225,7 +225,7 @@ describe('TelegrafService', () => {
 
       expect(telegraf.start).toHaveBeenCalledTimes(1);
       expect(telegraf.command).toHaveBeenCalledTimes(1);
-      expect(telegraf.on).toHaveBeenCalledTimes(2);
+      expect(telegraf.on).toHaveBeenCalledTimes(3);
       expect(telegraf.action).toHaveBeenCalledTimes(6);
     });
   });
@@ -235,6 +235,40 @@ describe('TelegrafService', () => {
       const ctx = makeTelegrafMockContext();
       service.onStart(ctx);
       expect(ctx.reply).toHaveBeenCalledWith(MESSAGES.WELCOME);
+    });
+  });
+
+  describe('onDocument', () => {
+    it('Should reply with BAD_REQUEST message if "document" is not in message', async () => {
+      const ctx = makeTelegrafMockContext({ message: {} });
+      await service.onDocument(ctx);
+      expect(ctx.reply).toHaveBeenCalledWith(MESSAGES.BAD_REQUEST);
+    });
+
+    it('Should reply with ONLY_IMAGES_AVAILABILE if sent document is not an image', async () => {
+      const ctx = makeTelegrafMockContext({
+        message: {
+          document: {
+            mime_type: 'pdf',
+          },
+        },
+      });
+      await service.onDocument(ctx);
+      expect(ctx.reply).toHaveBeenCalledWith(MESSAGES.ONLY_IMAGES_AVAILABILE);
+    });
+
+    it('Should call processPhoto', async () => {
+      const ctx = makeTelegrafMockContext({
+        message: {
+          document: { file_id: 1, mime_type: 'image/png' },
+          from: { id: Date.now() },
+        },
+      });
+
+      service.processPhoto = jest.fn();
+      await service.onDocument(ctx);
+
+      expect(service.processPhoto).toHaveBeenCalled();
     });
   });
 
@@ -251,6 +285,18 @@ describe('TelegrafService', () => {
       expect(ctx.reply).toHaveBeenCalledWith(MESSAGES.BAD_REQUEST);
     });
 
+    it('Should call processPhoto', async () => {
+      const ctx = makeTelegrafMockContext({
+        message: { photo: [{ file_id: 1 }], from: { id: Date.now() } },
+      });
+      service.processPhoto = jest.fn();
+      await service.onPhoto(ctx);
+
+      expect(service.processPhoto).toHaveBeenCalled();
+    });
+  });
+
+  describe('processPhoto', () => {
     it('Should call onBackgroundPhoto if user has no state', async () => {
       const ctx = makeTelegrafMockContext({
         message: { photo: [{ file_id: 1 }], from: { id: Date.now() } },
@@ -475,6 +521,21 @@ describe('TelegrafService', () => {
         telegrafUiServuce.positionKeyboard,
       );
     });
+
+    it('Should call onPosition if pattern type was selected', () => {
+      const ctx = makeTelegrafMockContext({
+        callback_query: {
+          data: WATERMARK_TYPES.pattern,
+          from: { id: Date.now() },
+        },
+      });
+      service.tryTransistToGivenState = jest.fn(() => true);
+      telegrafUsersStatesService.hasState = jest.fn(() => true);
+
+      jest.spyOn(service, 'onPosition');
+      service.onPlacementStyle(ctx);
+      expect(service.onPosition).toHaveBeenCalled();
+    });
   });
 
   describe('onPosition', () => {
@@ -554,12 +615,13 @@ describe('TelegrafService', () => {
       expect(service.onOpacity(ctx)).toBeUndefined();
     });
 
-    it('Should reply with CHOOSE_COLOR if it transist to given state', () => {
+    it('Should reply with CHOOSE_COLOR if it transist to given state and watemark file is null', () => {
       const ctx = makeTelegrafMockContext({
         callback_query: { data: 'test', from: { id: Date.now() } },
       });
       service.tryTransistToGivenState = jest.fn(() => true);
       telegrafUsersStatesService.hasState = jest.fn(() => true);
+      telegrafUsersStatesService.getStateData = jest.fn(() => ({}));
 
       service.onOpacity(ctx);
 
@@ -567,6 +629,23 @@ describe('TelegrafService', () => {
         MESSAGES.CHOOSE_COLOR,
         telegrafUiServuce.colorKeyboard,
       );
+    });
+
+    it('Should call onColor if watermark file is not null', () => {
+      const ctx = makeTelegrafMockContext({
+        callback_query: { data: 'test', from: { id: Date.now() } },
+      });
+      service.tryTransistToGivenState = jest.fn(() => true);
+      telegrafUsersStatesService.hasState = jest.fn(() => true);
+      telegrafUsersStatesService.getStateData = jest.fn(() => ({
+        watermarkFile: Buffer.from('A'),
+      }));
+
+      jest.spyOn(service, 'onColor');
+
+      service.onOpacity(ctx);
+
+      expect(service.onColor).toHaveBeenCalledWith(ctx);
     });
   });
 

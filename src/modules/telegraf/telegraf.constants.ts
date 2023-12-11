@@ -55,6 +55,7 @@ export const MESSAGES = <const>{
   CHOOSE_POSITION: `${EMOJI.TOP_DOWN_ARROW} Выберите расположение:`,
   CHOOSE_ROTATION: `${EMOJI.CYCLE} Введите угол поворота в градусах:`,
   ROTATION_PARSE_ERROR: `${EMOJI.CROSS} Невозможно обработать входные данные. Введите число:`,
+  ONLY_IMAGES_AVAILABILE: `${EMOJI.CROSS} Отправьте изображение`,
 };
 
 export const SYS_MESSAGES = <const>{
@@ -69,6 +70,7 @@ export const SYS_MESSAGES = <const>{
   USER_STATE_NOT_FOUND: 'USER_STATE_NOT_FOUND',
   WRONG_STATE_ON_TEXT: 'WRONG_STATE_ON_TEXT',
   UNHANDLED_STATE_TO_SKIP: 'UNHANDLED_STATE_TO_SKIP',
+  NO_DOCUMENT_IN_MESSAGE: 'NO_DOCUMENT_IN_MESSAGE',
 };
 
 export const COMMANDS = <const>{
@@ -90,6 +92,7 @@ export const EVENTS = <const>{
   MESSAGES: {
     PHOTO: 'photo',
     TEXT: 'text',
+    DOCUMENT: 'document',
   },
 };
 
