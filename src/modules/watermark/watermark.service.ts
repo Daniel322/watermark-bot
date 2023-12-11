@@ -11,6 +11,7 @@ import {
   POSITION_TYPES,
   SIZES,
   SIZE_COEFFICIENTS,
+  SMALL_PARTS_Y,
   WATERMARK_TYPES,
 } from './watermark.constants';
 import {
@@ -315,11 +316,10 @@ export class WatermarkService {
       text,
       x: this.getCoordUtil(x, WATERMARK_TYPES.pattern),
       y: this.getCoordUtil(y, WATERMARK_TYPES.pattern),
+      fontSize,
+      imageWidth,
+      imageHeight,
     });
-
-    this.logger.log(
-      `generated svg pattern in generatePattern -> ${patternText}`,
-    );
 
     const svg = `
     <svg width="${imageWidth}" height="${imageHeight}">
@@ -335,16 +335,46 @@ export class WatermarkService {
     </svg>
   `;
 
-    this.logger.log(`generated svg in generatePatternWatermarkSvg -> ${svg}`);
-
     return Buffer.from(svg);
   }
 
-  generatePattern({ size, text, x, y }: GeneratePatternProps): string {
+  generatePattern({
+    size,
+    text,
+    x,
+    y,
+    fontSize,
+    imageHeight,
+    imageWidth,
+  }: GeneratePatternProps): string {
     const patternParts: string[] = [];
 
-    const { partInRow, partInColumn } = DICTIONARY[size];
+    const dynamicColumns = Math.floor(imageHeight / fontSize);
+
+    const dynamicRows = Math.floor(imageWidth / ((text.length * fontSize) / 2));
+
+    const partInColumn = dynamicColumns < 1 ? 1 : dynamicColumns;
+
+    const partInRow = dynamicRows < 1 ? 1 : dynamicRows;
+
+    this.logger.log(`
+      dynamic part in column -> ${partInColumn}
+      dynamic part in row -> ${partInRow}
+      image height -> ${imageHeight}
+      image width -> ${imageWidth}
+    `);
+
     let partY = y;
+
+    if (partInColumn < 3) {
+      partY = SMALL_PARTS_Y[size];
+    }
+
+    if (partInColumn > 20) {
+      partY = 0;
+    }
+
+    this.logger.log(`start y coordinate of this pattern is -> ${partY}`);
 
     for (let column = 0; column < partInColumn; column++) {
       let partX = x;

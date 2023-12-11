@@ -75,8 +75,6 @@ export const POSITION_TYPES = {
 
 export const DICTIONARY: Record<Size, SizeData> = {
   s: {
-    partInRow: 7,
-    partInColumn: 20,
     weightCoefficient: 0.3,
     x: {
       single: {
@@ -109,8 +107,6 @@ export const DICTIONARY: Record<Size, SizeData> = {
     defaultFontSize: 40,
   },
   m: {
-    partInRow: 4,
-    partInColumn: 10,
     weightCoefficient: 0.5,
     x: {
       single: {
@@ -143,8 +139,6 @@ export const DICTIONARY: Record<Size, SizeData> = {
     defaultFontSize: 60,
   },
   l: {
-    partInRow: 2,
-    partInColumn: 4,
     weightCoefficient: 0.8,
     x: {
       single: {
@@ -181,4 +175,10 @@ export const DICTIONARY: Record<Size, SizeData> = {
 export const COLORS: Record<Color, string> = {
   black: '0,0,0',
   white: '255,255,255',
+};
+
+export const SMALL_PARTS_Y: Record<Size, number> = {
+  s: 30,
+  m: 50,
+  l: 70,
 };
