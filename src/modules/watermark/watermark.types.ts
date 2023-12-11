@@ -60,6 +60,9 @@ export type GeneratePatternProps = {
   text: string;
   y: number;
   x: number;
+  fontSize: number;
+  imageWidth: number;
+  imageHeight: number;
 };
 
 export type GetFontSizeProps = {
@@ -69,8 +72,6 @@ export type GetFontSizeProps = {
 };
 
 export type SizeData = {
-  partInRow: number;
-  partInColumn: number;
   weightCoefficient: number;
   x: Record<WatermarkType, Record<PositionType, number> | number>;
   y: Record<WatermarkType, Record<PositionType, number> | number>;

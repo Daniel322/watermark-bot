@@ -60,6 +60,9 @@ describe('WatermarkService', () => {
         x: 1,
         y: 5,
         size: 's',
+        imageWidth: 1000,
+        imageHeight: 500,
+        fontSize: 75,
       };
 
       expect(typeof service.generatePattern(options)).toBe('string');
