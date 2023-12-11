@@ -24,6 +24,7 @@ import {
   SetImageWatermarkProps,
   SetSizeToImageWatermarkProps,
   CompositeImageAndWatermarkPatternProps,
+  GetXCoordinateProps,
 } from './watermark.types';
 
 @Injectable()
@@ -259,7 +260,14 @@ export class WatermarkService {
       imageWidth,
     });
 
-    const { x, y } = DICTIONARY[size];
+    const { y } = DICTIONARY[size];
+
+    const x = this.getXCoordinateUtil({
+      imageWidth,
+      fontSize,
+      text,
+      position,
+    });
 
     const svg = `
       <svg
@@ -280,7 +288,7 @@ export class WatermarkService {
     }
       </style>
       <text
-        x="${this.getCoordUtil(x, WATERMARK_TYPES.single, position)}%"
+        x="${x}%"
       y="${this.getCoordUtil(y, WATERMARK_TYPES.single, position)}%"
       text-anchor="start"
       filter="url(#solid)"
@@ -292,8 +300,6 @@ export class WatermarkService {
     </text>
       </svg>
     `;
-
-    this.logger.log(`generated svg in generateSingleWatermarkSvg -> ${svg}`);
 
     return Buffer.from(svg);
   }
@@ -353,7 +359,7 @@ export class WatermarkService {
 
     const dynamicColumns = Math.floor(imageHeight / fontSize);
 
-    const dynamicRows = Math.floor(imageWidth / ((text.length * fontSize) / 2));
+    const dynamicRows = Math.floor(imageWidth / (text.length * fontSize));
 
     const partInColumn = dynamicColumns < 1 ? 1 : dynamicColumns;
 
@@ -414,5 +420,46 @@ export class WatermarkService {
     return type === WATERMARK_TYPES.pattern
       ? value[type]
       : value[type][position];
+  }
+
+  getXCoordinateUtil({
+    imageWidth,
+    text,
+    position,
+    fontSize,
+  }: GetXCoordinateProps): number {
+    const leftPositionArr: PositionType[] = [
+      'topLeft',
+      'centerLeft',
+      'bottomLeft',
+    ];
+
+    const centerPositionArr: PositionType[] = [
+      'topCenter',
+      'centerCenter',
+      'bottomCenter',
+    ];
+
+    const rightPositionArr: PositionType[] = [
+      'bottomRight',
+      'centerRight',
+      'topRight',
+    ];
+
+    if (leftPositionArr.includes(position)) {
+      return 1;
+    }
+
+    if (centerPositionArr.includes(position)) {
+      return Math.floor(
+        (((imageWidth - (text.length * fontSize) / 2) / 2) * 100) / imageWidth,
+      );
+    }
+
+    if (rightPositionArr.includes(position)) {
+      return Math.floor(
+        ((imageWidth - text.length * fontSize) * 100) / imageWidth,
+      );
+    }
   }
 }

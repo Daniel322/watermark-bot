@@ -7,8 +7,9 @@ import { WatermarkService } from './watermark.service';
 import {
   GeneratePatternProps,
   GenerateWatermarkProps,
+  GetXCoordinateProps,
 } from './watermark.types';
-import { DICTIONARY, SIZES } from './watermark.constants';
+import { DICTIONARY, POSITION_TYPES, SIZES } from './watermark.constants';
 
 describe('WatermarkService', () => {
   let service: WatermarkService;
@@ -43,6 +44,59 @@ describe('WatermarkService', () => {
       expect(service.getCoordUtil(xL, 'pattern')).toEqual<number>(5);
       expect(service.getCoordUtil(yL, 'single')).toEqual<number>(50);
       expect(service.getCoordUtil(yL, 'pattern')).toEqual<number>(10);
+    });
+  });
+
+  describe('getXCoordinateUtil', () => {
+    const options: Omit<GetXCoordinateProps, 'position'> = {
+      imageWidth: 1000,
+      fontSize: 50,
+      text: 'test',
+    };
+
+    it('should be defined', () => {
+      expect(
+        service.getXCoordinateUtil({
+          ...options,
+          position: POSITION_TYPES.centerCenter,
+        }),
+      ).toBeDefined();
+    });
+
+    it('should return number', () => {
+      expect(
+        typeof service.getXCoordinateUtil({
+          ...options,
+          position: POSITION_TYPES.centerCenter,
+        }),
+      ).toBe('number');
+    });
+
+    it('should return 1', () => {
+      expect(
+        service.getXCoordinateUtil({
+          ...options,
+          position: POSITION_TYPES.topLeft,
+        }),
+      ).toEqual(1);
+    });
+
+    it('should return 45', () => {
+      expect(
+        service.getXCoordinateUtil({
+          ...options,
+          position: POSITION_TYPES.centerCenter,
+        }),
+      ).toEqual(45);
+    });
+
+    it('should return 80', () => {
+      expect(
+        service.getXCoordinateUtil({
+          ...options,
+          position: POSITION_TYPES.topRight,
+        }),
+      ).toEqual(80);
     });
   });
 

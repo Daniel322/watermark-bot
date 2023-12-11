@@ -100,3 +100,8 @@ export type CompositeImageAndWatermarkPatternProps = {
   width: number;
   size: Size;
 };
+
+export type GetXCoordinateProps = Pick<
+  Required<GenerateWatermarkProps>,
+  'position' | 'imageWidth' | 'text'
+> & { fontSize: number };
