@@ -11,7 +11,6 @@ import {
   POSITION_TYPES,
   SIZES,
   SIZE_COEFFICIENTS,
-  SMALL_PARTS_Y,
   WATERMARK_TYPES,
 } from './watermark.constants';
 import {
@@ -309,7 +308,10 @@ export class WatermarkService {
   }: GenerateWatermarkProps): Buffer {
     const { weightCoefficient, x, y } = DICTIONARY[size];
 
-    const fontSize = (imageWidth * weightCoefficient) / text.length;
+    const dynamicFontSize = (imageWidth * weightCoefficient) / text.length;
+
+    const fontSize =
+      dynamicFontSize > imageHeight ? imageHeight : dynamicFontSize;
 
     const patternText = this.generatePattern({
       size,
@@ -362,15 +364,19 @@ export class WatermarkService {
       dynamic part in row -> ${partInRow}
       image height -> ${imageHeight}
       image width -> ${imageWidth}
+      text -> ${text}
+      fontSize -> ${fontSize}
     `);
 
     let partY = y;
 
-    if (partInColumn < 3) {
-      partY = SMALL_PARTS_Y[size];
+    if (partInColumn === 1) {
+      partY = size === SIZES.s ? 50 : 75;
     }
-
-    if (partInColumn > 20) {
+    if (partInColumn > 1 && partInColumn <= 10) {
+      partY = imageHeight / (partInColumn * 8);
+    }
+    if (partInColumn > 10) {
       partY = 0;
     }
 

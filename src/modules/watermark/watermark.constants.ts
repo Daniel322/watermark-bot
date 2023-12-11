@@ -176,9 +176,3 @@ export const COLORS: Record<Color, string> = {
   black: '0,0,0',
   white: '255,255,255',
 };
-
-export const SMALL_PARTS_Y: Record<Size, number> = {
-  s: 30,
-  m: 50,
-  l: 70,
-};
