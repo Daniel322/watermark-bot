@@ -160,7 +160,7 @@ describe('WatermarkService', () => {
       });
     }
 
-    it('should throw', () => {
+    it('should throw an error', () => {
       const getXCoordinateUtilWithInvalidPosition = () => {
         return service['getXCoordinateUtil']({
           ...options,
@@ -316,7 +316,7 @@ describe('WatermarkService', () => {
       ).toBeInstanceOf(Buffer);
     });
 
-    it('should throw if file is invalid', () => {
+    it('should throw an error if file is invalid', () => {
       const badBuffer = Buffer.from([0, 0, 0, 0]);
       expect(() =>
         service['compositeImageAndWatermark'](badBuffer, [
@@ -329,7 +329,7 @@ describe('WatermarkService', () => {
       ).rejects.toThrow();
     });
 
-    it('should throw if watermark is invalid', () => {
+    it('should throw an error if watermark is invalid', () => {
       const badBuffer = Buffer.from([0, 0, 0, 0]);
       expect(() =>
         service['compositeImageAndWatermark'](file, [
@@ -386,7 +386,7 @@ describe('WatermarkService', () => {
       ).toBeInstanceOf(Buffer);
     });
 
-    it('should to throw', async () => {
+    it('should throw an error', async () => {
       expect(async () => {
         await service['setOptionsToImageWatermark']({
           watermark: badBuffer,
@@ -525,7 +525,7 @@ describe('WatermarkService', () => {
       expect(service['compositeImageAndWatermark']).toHaveBeenCalledTimes(1);
     });
 
-    it('should throw', async () => {
+    it('should throw an error', async () => {
       const badBuffer = Buffer.from([0, 0, 0, 0]);
       expect(async () => {
         await service.createImageWithTextWatermark({
@@ -625,7 +625,7 @@ describe('WatermarkService', () => {
       ).toHaveBeenCalledTimes(1);
     });
 
-    it('should throw', async () => {
+    it('should throw an error', async () => {
       const badBuffer = Buffer.from([0, 0, 0, 0]);
       expect(async () => {
         await service.createImageWithImageWatermark({
