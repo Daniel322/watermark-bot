@@ -211,7 +211,7 @@ describe('WatermarkService', () => {
         fontSize: 75,
       };
 
-      expect(typeof service.generatePattern(options)).toBe('string');
+      expect(typeof service['generatePattern'](options)).toBe('string');
     });
   });
 
@@ -223,13 +223,31 @@ describe('WatermarkService', () => {
     };
 
     it('return defined value', () => {
-      expect(service.generatePatternWatermarkSvg(options)).toBeDefined();
+      expect(service['generatePatternWatermarkSvg'](options)).toBeDefined();
     });
 
     it('return instance of buffer', () => {
-      expect(service.generatePatternWatermarkSvg(options)).toBeInstanceOf(
+      expect(service['generatePatternWatermarkSvg'](options)).toBeInstanceOf(
         Buffer,
       );
+    });
+
+    it('should call generate pattern method', () => {
+      service['generatePattern'] = jest.fn();
+
+      service['generatePatternWatermarkSvg'](options);
+
+      expect(service['generatePattern']).toHaveBeenCalled();
+      expect(service['generatePattern']).toHaveBeenCalledTimes(1);
+    });
+
+    it('should call getCoordUtil method', () => {
+      service['getCoordUtil'] = jest.fn();
+
+      service['generatePatternWatermarkSvg'](options);
+
+      expect(service['getCoordUtil']).toHaveBeenCalled();
+      expect(service['getCoordUtil']).toHaveBeenCalledTimes(2);
     });
   });
 
@@ -241,13 +259,40 @@ describe('WatermarkService', () => {
     };
 
     it('return defined value', () => {
-      expect(service.generateSingleWatermarkSvg(options)).toBeDefined();
+      expect(service['generateSingleWatermarkSvg'](options)).toBeDefined();
     });
 
     it('return instance of buffer', () => {
-      expect(service.generateSingleWatermarkSvg(options)).toBeInstanceOf(
+      expect(service['generateSingleWatermarkSvg'](options)).toBeInstanceOf(
         Buffer,
       );
+    });
+
+    it('should call getFontSize method', () => {
+      service['getFontSize'] = jest.fn();
+
+      service['generateSingleWatermarkSvg'](options);
+
+      expect(service['getFontSize']).toHaveBeenCalled();
+      expect(service['getFontSize']).toHaveBeenCalledTimes(1);
+    });
+
+    it('should call getXCoordinateUtil method', () => {
+      service['getXCoordinateUtil'] = jest.fn();
+
+      service['generateSingleWatermarkSvg'](options);
+
+      expect(service['getXCoordinateUtil']).toHaveBeenCalled();
+      expect(service['getXCoordinateUtil']).toHaveBeenCalledTimes(1);
+    });
+
+    it('should call getXCoordinateUtil method', () => {
+      service['getCoordUtil'] = jest.fn();
+
+      service['generateSingleWatermarkSvg'](options);
+
+      expect(service['getCoordUtil']).toHaveBeenCalled();
+      expect(service['getCoordUtil']).toHaveBeenCalledTimes(1);
     });
   });
 

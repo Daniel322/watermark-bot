@@ -33,7 +33,7 @@ export class WatermarkService {
   private readonly logger = new Logger(WatermarkService.name);
   constructor() {}
 
-  //CORE METHODS FOR GENERATE WATERMARKS WITH TEXT OR IMAGE
+  //CORE PUBLIC METHODS FOR GENERATE WATERMARKS WITH TEXT OR IMAGE
 
   async createImageWithImageWatermark({
     file,
@@ -255,7 +255,7 @@ export class WatermarkService {
 
   //METHODS FOR SET OPTIONS TO TEXT WATERMARK
 
-  generateSingleWatermarkSvg({
+  private generateSingleWatermarkSvg({
     text,
     imageWidth,
     imageHeight,
@@ -315,7 +315,7 @@ export class WatermarkService {
     return Buffer.from(svg);
   }
 
-  generatePatternWatermarkSvg({
+  private generatePatternWatermarkSvg({
     text,
     size = SIZES.s,
     imageWidth,
@@ -357,7 +357,7 @@ export class WatermarkService {
     return Buffer.from(svg);
   }
 
-  generatePattern({
+  private generatePattern({
     size,
     text,
     x,
