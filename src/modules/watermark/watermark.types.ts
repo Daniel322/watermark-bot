@@ -105,3 +105,22 @@ export type GetXCoordinateProps = Pick<
   Required<GenerateWatermarkProps>,
   'position' | 'imageWidth' | 'text'
 > & { fontSize: number };
+
+export type GeneratePositionCoordinatesProps = {
+  height: number;
+  width: number;
+  position: PositionType;
+  coefficients:
+    | {
+        top: {
+          center: number;
+          bottom: number;
+        };
+      }
+    | {
+        left: {
+          center: number;
+          right: number;
+        };
+      };
+};
