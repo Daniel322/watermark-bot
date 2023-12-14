@@ -25,6 +25,7 @@ import {
   SetSizeToImageWatermarkProps,
   CompositeImageAndWatermarkPatternProps,
   GetXCoordinateProps,
+  GeneratePositionCoordinatesProps,
 } from './watermark.types';
 
 @Injectable()
@@ -116,14 +117,19 @@ export class WatermarkService {
 
   //CORE SHARP METHODS
 
-  compositeImageAndWatermark(
+  private compositeImageAndWatermark(
     image: Buffer,
     options: sharp.OverlayOptions[],
   ): Promise<Buffer> {
-    return sharp(image).composite(options).toBuffer();
+    try {
+      return sharp(image).composite(options).toBuffer();
+    } catch (error) {
+      this.logger.error(error.message);
+      throw new Error(error);
+    }
   }
 
-  async getImageMetadata(image: Buffer): Promise<sharp.Metadata> {
+  private async getImageMetadata(image: Buffer): Promise<sharp.Metadata> {
     try {
       const metadata = await sharp(image).metadata();
 
@@ -135,7 +141,7 @@ export class WatermarkService {
 
   //METHODS FOR SET OPTIONS TO IMAGE WATERMARK
 
-  async setOptionsToImageWatermark({
+  private async setOptionsToImageWatermark({
     watermark,
     imageWidth: width,
     imageHeight: height,
@@ -143,38 +149,43 @@ export class WatermarkService {
     opacity = 1,
     rotate = 0,
   }: SetSizeToImageWatermarkProps): Promise<Buffer> {
-    const withoutOpacity = 255;
+    try {
+      const withoutOpacity = 255;
 
-    const opacityBufferValue = Math.round(opacity * withoutOpacity);
-    const opacityBuffer = Buffer.alloc(width * height, opacityBufferValue);
+      const opacityBufferValue = Math.round(opacity * withoutOpacity);
+      const opacityBuffer = Buffer.alloc(width * height, opacityBufferValue);
 
-    const result = await sharp(watermark)
-      .png()
-      .resize({
-        width: Math.floor(width * SIZE_COEFFICIENTS[size]),
-        height: Math.floor(height * SIZE_COEFFICIENTS[size]),
-        fit: 'contain',
-        background: 'rgba(0,0,0,0)',
-      })
-      .composite([
-        {
-          input: opacityBuffer,
-          raw: {
-            width: 1,
-            height: 1,
-            channels: 4,
+      const result = await sharp(watermark)
+        .png()
+        .resize({
+          width: Math.floor(width * SIZE_COEFFICIENTS[size]),
+          height: Math.floor(height * SIZE_COEFFICIENTS[size]),
+          fit: 'contain',
+          background: 'rgba(0,0,0,0)',
+        })
+        .composite([
+          {
+            input: opacityBuffer,
+            raw: {
+              width: 1,
+              height: 1,
+              channels: 4,
+            },
+            tile: true,
+            blend: 'dest-in',
           },
-          tile: true,
-          blend: 'dest-in',
-        },
-      ])
-      .rotate(Number(rotate), { background: 'rgba(0,0,0,0)' })
-      .toBuffer();
+        ])
+        .rotate(Number(rotate), { background: 'rgba(0,0,0,0)' })
+        .toBuffer();
 
-    return result;
+      return result;
+    } catch (error) {
+      this.logger.error(error.message);
+      throw new Error(error);
+    }
   }
 
-  compositeImageAndWatermarkPattern({
+  private compositeImageAndWatermarkPattern({
     image,
     watermark,
     size,
@@ -197,12 +208,12 @@ export class WatermarkService {
     return this.compositeImageAndWatermark(image, patternParts);
   }
 
-  generatePositionCoordinates({
+  private generatePositionCoordinates({
     height,
     width,
     position,
     coefficients,
-  }): CompositePosition {
+  }: GeneratePositionCoordinatesProps): CompositePosition {
     const positionCoordinates: Record<PositionType, CompositePosition> = {
       topLeft: { top: 0, left: 0 },
       topCenter: {
@@ -402,7 +413,11 @@ export class WatermarkService {
     return patternParts.join('');
   }
 
-  getFontSize({ size = SIZES.s, textLength, imageWidth }: GetFontSizeProps) {
+  private getFontSize({
+    size = SIZES.s,
+    textLength,
+    imageWidth,
+  }: GetFontSizeProps) {
     const { defaultFontSize, weightCoefficient } = DICTIONARY[size];
 
     const dynamicSize = Math.floor(
@@ -412,7 +427,7 @@ export class WatermarkService {
     return dynamicSize > defaultFontSize ? defaultFontSize : dynamicSize;
   }
 
-  getCoordUtil(
+  private getCoordUtil(
     value: Record<WatermarkType, Record<PositionType, number> | number>,
     type: WatermarkType,
     position: PositionType = POSITION_TYPES.centerCenter,
@@ -422,7 +437,7 @@ export class WatermarkService {
       : value[type][position];
   }
 
-  getXCoordinateUtil({
+  private getXCoordinateUtil({
     imageWidth,
     text,
     position,
@@ -445,6 +460,15 @@ export class WatermarkService {
       'centerRight',
       'topRight',
     ];
+
+    if (
+      !leftPositionArr.includes(position) &&
+      !centerPositionArr.includes(position) &&
+      !rightPositionArr.includes(position)
+    ) {
+      this.logger.error('INVALID POSITION');
+      throw new Error('INVALID POSITION');
+    }
 
     if (leftPositionArr.includes(position)) {
       return 1;
