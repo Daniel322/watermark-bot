@@ -10,7 +10,7 @@ import {
   GetXCoordinateProps,
   PositionType,
 } from './watermark.types';
-import { DICTIONARY, SIZES } from './watermark.constants';
+import { DICTIONARY, SIZES, WATERMARK_TYPES } from './watermark.constants';
 
 describe('WatermarkService', () => {
   let service: WatermarkService;
@@ -467,6 +467,73 @@ describe('WatermarkService', () => {
         await service.createImageWithTextWatermark({ file, text: 'test' }),
       ).toBeInstanceOf(Buffer);
     });
+
+    it('should call getImageMetadata', async () => {
+      jest.spyOn(service, 'getImageMetadata' as keyof WatermarkService);
+
+      await service.createImageWithTextWatermark({ file, text: 'test' });
+
+      expect(service['getImageMetadata']).toHaveBeenCalled();
+      expect(service['getImageMetadata']).toHaveBeenCalledTimes(1);
+    });
+
+    it('should call generateSingleWatermarkSvg if type single', async () => {
+      jest.spyOn(
+        service,
+        'generateSingleWatermarkSvg' as keyof WatermarkService,
+      );
+
+      await service.createImageWithTextWatermark({
+        file,
+        text: 'test',
+        options: { type: WATERMARK_TYPES.single },
+      });
+
+      expect(service['generateSingleWatermarkSvg']).toHaveBeenCalled();
+      expect(service['generateSingleWatermarkSvg']).toHaveBeenCalledTimes(1);
+    });
+
+    it('should call generatePatternWatermarkSvg if type pattern', async () => {
+      jest.spyOn(
+        service,
+        'generatePatternWatermarkSvg' as keyof WatermarkService,
+      );
+
+      await service.createImageWithTextWatermark({
+        file,
+        text: 'test',
+        options: { type: WATERMARK_TYPES.pattern },
+      });
+
+      expect(service['generatePatternWatermarkSvg']).toHaveBeenCalled();
+      expect(service['generatePatternWatermarkSvg']).toHaveBeenCalledTimes(1);
+    });
+
+    it('should call compositeImageAndWatermark', async () => {
+      jest.spyOn(
+        service,
+        'compositeImageAndWatermark' as keyof WatermarkService,
+      );
+
+      await service.createImageWithTextWatermark({
+        file,
+        text: 'test',
+        options: { type: WATERMARK_TYPES.pattern },
+      });
+
+      expect(service['compositeImageAndWatermark']).toHaveBeenCalled();
+      expect(service['compositeImageAndWatermark']).toHaveBeenCalledTimes(1);
+    });
+
+    it('should throw', async () => {
+      const badBuffer = Buffer.from([0, 0, 0, 0]);
+      expect(async () => {
+        await service.createImageWithTextWatermark({
+          file: badBuffer,
+          text: 'test',
+        });
+      }).rejects.toThrow();
+    });
   });
 
   describe('createImageWithImageWatermark', () => {
@@ -485,6 +552,87 @@ describe('WatermarkService', () => {
       expect(
         await service.createImageWithImageWatermark({ file, watermark: file }),
       ).toBeInstanceOf(Buffer);
+    });
+
+    it('should call getImageMetadata', async () => {
+      jest.spyOn(service, 'getImageMetadata' as keyof WatermarkService);
+
+      await service.createImageWithImageWatermark({ file, watermark: file });
+
+      expect(service['getImageMetadata']).toHaveBeenCalled();
+      expect(service['getImageMetadata']).toHaveBeenCalledTimes(1);
+    });
+
+    it('should call setOptionsToImageWatermark', async () => {
+      jest.spyOn(
+        service,
+        'setOptionsToImageWatermark' as keyof WatermarkService,
+      );
+
+      await service.createImageWithImageWatermark({ file, watermark: file });
+
+      expect(service['setOptionsToImageWatermark']).toHaveBeenCalled();
+      expect(service['setOptionsToImageWatermark']).toHaveBeenCalledTimes(1);
+    });
+
+    it('should call generatePositionCoordinates if type single', async () => {
+      jest.spyOn(
+        service,
+        'generatePositionCoordinates' as keyof WatermarkService,
+      );
+
+      await service.createImageWithImageWatermark({
+        file,
+        watermark: file,
+        options: { type: WATERMARK_TYPES.single },
+      });
+
+      expect(service['generatePositionCoordinates']).toHaveBeenCalled();
+      expect(service['generatePositionCoordinates']).toHaveBeenCalledTimes(1);
+    });
+
+    it('should call compositeImageAndWatermark if type single', async () => {
+      jest.spyOn(
+        service,
+        'compositeImageAndWatermark' as keyof WatermarkService,
+      );
+
+      await service.createImageWithImageWatermark({
+        file,
+        watermark: file,
+        options: { type: WATERMARK_TYPES.single },
+      });
+
+      expect(service['compositeImageAndWatermark']).toHaveBeenCalled();
+      expect(service['compositeImageAndWatermark']).toHaveBeenCalledTimes(1);
+    });
+
+    it('should call compositeImageAndWatermarkPattern if type pattern', async () => {
+      jest.spyOn(
+        service,
+        'compositeImageAndWatermarkPattern' as keyof WatermarkService,
+      );
+
+      await service.createImageWithImageWatermark({
+        file,
+        watermark: file,
+        options: { type: WATERMARK_TYPES.pattern },
+      });
+
+      expect(service['compositeImageAndWatermarkPattern']).toHaveBeenCalled();
+      expect(
+        service['compositeImageAndWatermarkPattern'],
+      ).toHaveBeenCalledTimes(1);
+    });
+
+    it('should throw', async () => {
+      const badBuffer = Buffer.from([0, 0, 0, 0]);
+      expect(async () => {
+        await service.createImageWithImageWatermark({
+          file: badBuffer,
+          watermark: badBuffer,
+        });
+      }).rejects.toThrow();
     });
   });
 });

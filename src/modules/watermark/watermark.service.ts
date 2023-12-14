@@ -49,38 +49,43 @@ export class WatermarkService {
       position: POSITION_TYPES.centerCenter,
     },
   }: SetImageWatermarkProps): Promise<Buffer> {
-    const { width, height } = await this.getImageMetadata(file);
+    try {
+      const { width, height } = await this.getImageMetadata(file);
 
-    const sizedWatermark = await this.setOptionsToImageWatermark({
-      watermark,
-      imageHeight: height,
-      imageWidth: width,
-      size,
-      ...options,
-    });
+      const sizedWatermark = await this.setOptionsToImageWatermark({
+        watermark,
+        imageHeight: height,
+        imageWidth: width,
+        size,
+        ...options,
+      });
 
-    if (type === WATERMARK_TYPES.single) {
-      const coefficients = POSITION_COORDINATES_COEFFICIENTS[size];
+      if (type === WATERMARK_TYPES.single) {
+        const coefficients = POSITION_COORDINATES_COEFFICIENTS[size];
 
-      const compositeOptions: CompositePosition =
-        this.generatePositionCoordinates({
+        const compositeOptions: CompositePosition =
+          this.generatePositionCoordinates({
+            height,
+            width,
+            coefficients,
+            position,
+          });
+
+        return this.compositeImageAndWatermark(file, [
+          { input: sizedWatermark, ...compositeOptions },
+        ]);
+      } else {
+        return this.compositeImageAndWatermarkPattern({
+          image: file,
+          watermark: sizedWatermark,
+          size,
           height,
           width,
-          coefficients,
-          position,
         });
-
-      return this.compositeImageAndWatermark(file, [
-        { input: sizedWatermark, ...compositeOptions },
-      ]);
-    } else {
-      return this.compositeImageAndWatermarkPattern({
-        image: file,
-        watermark: sizedWatermark,
-        size,
-        height,
-        width,
-      });
+      }
+    } catch (error) {
+      this.logger.error(error.message);
+      throw new Error(error);
     }
   }
 
@@ -91,28 +96,32 @@ export class WatermarkService {
       type: WATERMARK_TYPES.single,
     },
   }: SetTextWatermarkProps): Promise<Buffer> {
-    this.logger.log(`text in createImage with watermark -> ${text}`);
-    const { width, height } = await this.getImageMetadata(file);
+    try {
+      const { width, height } = await this.getImageMetadata(file);
 
-    const generateOptions: GenerateWatermarkProps = {
-      text,
-      imageHeight: height,
-      imageWidth: width,
-      ...options,
-    };
+      const generateOptions: GenerateWatermarkProps = {
+        text,
+        imageHeight: height,
+        imageWidth: width,
+        ...options,
+      };
 
-    const textWatermarkBuffer =
-      type === WATERMARK_TYPES.single
-        ? this.generateSingleWatermarkSvg(generateOptions)
-        : this.generatePatternWatermarkSvg(generateOptions);
+      const textWatermarkBuffer =
+        type === WATERMARK_TYPES.single
+          ? this.generateSingleWatermarkSvg(generateOptions)
+          : this.generatePatternWatermarkSvg(generateOptions);
 
-    const compositeOptions: CompositePosition = { top: 0, left: 0 };
+      const compositeOptions: CompositePosition = { top: 0, left: 0 };
 
-    const imageWithWatermark = await this.compositeImageAndWatermark(file, [
-      { input: textWatermarkBuffer, ...compositeOptions },
-    ]);
+      const imageWithWatermark = await this.compositeImageAndWatermark(file, [
+        { input: textWatermarkBuffer, ...compositeOptions },
+      ]);
 
-    return imageWithWatermark;
+      return imageWithWatermark;
+    } catch (error) {
+      this.logger.error(error.message);
+      throw new Error(error);
+    }
   }
 
   //CORE SHARP METHODS
