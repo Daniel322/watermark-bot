@@ -5,7 +5,7 @@ import { EnvConfig } from '@common/configs';
 
 import { TelegrafModule } from '@modules/telegraf/telegraf.module';
 import { WatermarkModule } from '@modules/watermark/watermark.module';
-import { TelegrafLogsModule } from './telegraf-logs/telegraf-logs.module';
+import { TelegrafLogsModule } from '@modules/telegraf-logs/telegraf-logs.module';
 
 @Module({
   imports: [
