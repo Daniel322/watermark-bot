@@ -26,6 +26,7 @@ import {
   SIZES,
   WATERMARK_TYPES,
 } from '@modules/watermark/watermark.constants';
+import { TelegrafLogsService } from '@modules/telegraf-logs/telegraf-logs.service';
 
 const makeTelegrafMock = () => {
   const tg = new Telegraf('');
@@ -97,6 +98,10 @@ const makeWatermarkServiceMock = () => ({
   }),
 });
 
+const makeTelegrafLogsServiceMock = () => ({
+  writeTelegrafLog: jest.fn(),
+});
+
 describe('TelegrafService', () => {
   let service: TelegrafService;
 
@@ -106,6 +111,7 @@ describe('TelegrafService', () => {
   const telegrafUiServuce = makeTelefrafUiServiceMock();
   const telegrafUsersStatesService = makeTelegrafUserStateServiceMock();
   const watermarkService = makeWatermarkServiceMock();
+  const telegraLogsService = makeTelegrafLogsServiceMock();
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -135,6 +141,10 @@ describe('TelegrafService', () => {
         {
           provide: TelegrafUsersStatesService,
           useValue: telegrafUsersStatesService,
+        },
+        {
+          provide: TelegrafLogsService,
+          useValue: telegraLogsService,
         },
       ],
     }).compile();
