@@ -1,15 +1,17 @@
-import { Injectable } from '@nestjs/common';
-import { createWriteStream } from 'fs';
+import { Injectable, Logger } from '@nestjs/common';
+import { appendFile } from 'fs';
 import { TelegrafLogOptions } from './telegraf-logs.types';
 import { ConfigService } from '@nestjs/config';
+import { mkdir } from 'fs/promises';
 
 @Injectable()
 export class TelegrafLogsService {
+  private logger = new Logger(TelegrafLogsService.name);
   private readonly defaultFileName: string;
   private readonly nodeEnv: string;
   constructor(private readonly configService: ConfigService) {
     this.nodeEnv = this.configService.get('env.type');
-    this.defaultFileName = 'log.txt';
+    this.defaultFileName = 'logs/log.csv';
   }
 
   async writeTelegrafLog({
@@ -23,7 +25,7 @@ export class TelegrafLogsService {
     try {
       const text = `${
         is_bot ? 'bot' : 'user'
-      }: ${username}, ${first_name} ${last_name}, ${id} with action: ${action}, on date: ${new Date().toISOString()}`;
+      },${username}, ${first_name}, ${last_name}, ${id}, ${action}, ${new Date().toISOString()}`;
 
       if (this.nodeEnv === 'production') {
         await this.writeLog(text);
@@ -40,11 +42,11 @@ export class TelegrafLogsService {
     fileName: string = this.defaultFileName,
   ): Promise<void> {
     try {
-      const stream = createWriteStream(fileName, { flags: 'a' });
-
-      stream.write(`${text}\n`);
-
-      stream.end();
+      await mkdir('logs', { recursive: true });
+      appendFile(fileName, `${text}\n`, 'utf-8', (err) => {
+        if (err) throw err;
+        this.logger.log('log was written success');
+      });
     } catch (error) {
       throw new Error(error);
     }
