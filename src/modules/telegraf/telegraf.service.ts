@@ -14,6 +14,7 @@ import { firstValueFrom } from 'rxjs';
 import { User } from '@telegraf/types';
 
 import { Bind } from '@common/decorators';
+import { TelegrafLogsService } from '@modules/telegraf-logs/telegraf-logs.service';
 import { WatermarkService } from '@modules/watermark/watermark.service';
 import {
   Color,
@@ -48,6 +49,7 @@ export class TelegrafService implements OnModuleInit, OnModuleDestroy {
   constructor(
     private readonly configService: ConfigService,
     private readonly httpService: HttpService,
+    private readonly telegrafLogsService: TelegrafLogsService,
     private readonly watermarkService: WatermarkService,
     private readonly uiService: TelegrafUiServuce,
     private readonly userStatesService: TelegrafUsersStatesService,
@@ -92,6 +94,7 @@ export class TelegrafService implements OnModuleInit, OnModuleDestroy {
   @Bind
   onStart(ctx: Context): void {
     ctx.reply(MESSAGES.WELCOME);
+    this.telegrafLogsService.writeTelegrafLog({ ...ctx.from, action: 'start' });
   }
 
   @Bind
@@ -413,7 +416,10 @@ export class TelegrafService implements OnModuleInit, OnModuleDestroy {
         ctx.editMessageText(MESSAGES.COMPLETE),
         ctx.replyWithPhoto({ source: bufWithWatermark }),
       ]);
-
+      this.telegrafLogsService.writeTelegrafLog({
+        ...ctx.from,
+        action: 'finish',
+      });
       this.userStatesService.remove(from.id);
     } catch (error) {
       this.logger.error(error.message);

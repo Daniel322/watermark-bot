@@ -9,9 +9,16 @@ import { TelegrafService } from './telegraf.service';
 import { telegrafProvider } from './telegraf.provider';
 import { TelegrafUiServuce } from './telegraf.ui.service';
 import { TelegrafUsersStatesService } from './telegraf.users-states.service';
+import { TelegrafLogsModule } from '@modules/telegraf-logs/telegraf-logs.module';
 
 @Module({
-  imports: [ConfigModule, HttpModule, CacheModule.register(), WatermarkModule],
+  imports: [
+    ConfigModule,
+    HttpModule,
+    CacheModule.register(),
+    TelegrafLogsModule,
+    WatermarkModule,
+  ],
   providers: [
     TelegrafService,
     telegrafProvider,
