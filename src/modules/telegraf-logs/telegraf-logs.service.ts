@@ -1,17 +1,18 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { appendFile } from 'fs';
-import { TelegrafLogOptions } from './telegraf-logs.types';
 import { ConfigService } from '@nestjs/config';
-import { mkdir } from 'fs/promises';
+
+import { mkdir, appendFile } from 'fs/promises';
+
+import { TelegrafLogOptions } from './telegraf-logs.types';
 
 @Injectable()
 export class TelegrafLogsService {
   private logger = new Logger(TelegrafLogsService.name);
-  private readonly defaultFileName: string;
+  private readonly defaultFileName = 'logs/log.csv';
   private readonly nodeEnv: string;
+
   constructor(private readonly configService: ConfigService) {
     this.nodeEnv = this.configService.get('env.type');
-    this.defaultFileName = 'logs/log.csv';
   }
 
   async writeTelegrafLog({
@@ -43,10 +44,10 @@ export class TelegrafLogsService {
   ): Promise<void> {
     try {
       await mkdir('logs', { recursive: true });
-      appendFile(fileName, `${text}\n`, 'utf-8', (err) => {
-        if (err) throw err;
-        this.logger.log('log was written success');
-      });
+
+      await appendFile(fileName, `${text}\n`, 'utf-8');
+
+      this.logger.log('log was written success');
     } catch (error) {
       throw new Error(error);
     }
