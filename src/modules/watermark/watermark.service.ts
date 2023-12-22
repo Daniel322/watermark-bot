@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 
-import * as sharp from 'sharp';
+import sharp, { OverlayOptions, Metadata } from 'sharp';
 
 import {
   COLORS,
@@ -128,7 +128,7 @@ export class WatermarkService {
 
   private compositeImageAndWatermark(
     image: Buffer,
-    options: sharp.OverlayOptions[],
+    options: OverlayOptions[],
   ): Promise<Buffer> {
     try {
       return sharp(image).composite(options).toBuffer();
@@ -138,7 +138,7 @@ export class WatermarkService {
     }
   }
 
-  private async getImageMetadata(image: Buffer): Promise<sharp.Metadata> {
+  private async getImageMetadata(image: Buffer): Promise<Metadata> {
     try {
       const metadata = await sharp(image).metadata();
 
@@ -203,7 +203,7 @@ export class WatermarkService {
   }: CompositeImageAndWatermarkPatternProps): Promise<Buffer> {
     const currentPattern = PATTERNS_FOR_COMPOSITE[size];
 
-    const patternParts: sharp.OverlayOptions[] = [];
+    const patternParts: OverlayOptions[] = [];
     let top = Math.floor(height * 0.1);
     for (let column = 0; column < currentPattern.columns; column++) {
       let left = Math.floor(width * 0.1);
