@@ -106,16 +106,30 @@ export class WatermarkService {
         ...options,
       };
 
-      const textWatermarkBuffer =
-        type === WATERMARK_TYPES.single
-          ? this.generateSingleWatermarkSvg(generateOptions)
-          : this.generatePatternWatermarkSvg(generateOptions);
+      const imageFromTextBuffer = await this.generateImageFromWatermarkText(
+        text,
+        generateOptions,
+      );
 
-      const compositeOptions: CompositePosition = { top: 0, left: 0 };
+      const imageWithWatermark = await this.createImageWithImageWatermark({
+        file,
+        watermark: imageFromTextBuffer,
+        options: {
+          type,
+          ...options,
+        },
+      });
 
-      const imageWithWatermark = await this.compositeImageAndWatermark(file, [
-        { input: textWatermarkBuffer, ...compositeOptions },
-      ]);
+      // const textWatermarkBuffer =
+      //   type === WATERMARK_TYPES.single
+      //     ? this.generateSingleWatermarkSvg(generateOptions)
+      //     : this.generatePatternWatermarkSvg(generateOptions);
+
+      // const compositeOptions: CompositePosition = { top: 0, left: 0 };
+
+      // const imageWithWatermark = await this.compositeImageAndWatermark(file, [
+      //   { input: textWatermarkBuffer, ...compositeOptions },
+      // ]);
 
       return imageWithWatermark;
     } catch (error) {
@@ -263,6 +277,62 @@ export class WatermarkService {
   }
 
   //METHODS FOR SET OPTIONS TO TEXT WATERMARK
+
+  private async generateImageFromWatermarkText(
+    text: string,
+    { color, size, imageWidth, imageHeight }: Partial<GenerateWatermarkProps>,
+  ): Promise<Buffer> {
+    const svgWidth = Math.floor(imageWidth * (SIZE_COEFFICIENTS[size] + 0.2));
+    const svgHeight = Math.floor(imageHeight * (SIZE_COEFFICIENTS[size] + 0.2));
+
+    const { defaultFontSize } = DICTIONARY[size];
+
+    const dynamicSize = Math.floor(
+      (svgWidth * (SIZE_COEFFICIENTS[size] + 0.2)) / text.length,
+    );
+
+    const fontSize =
+      dynamicSize < defaultFontSize ? defaultFontSize : dynamicSize;
+
+    this.logger.log(
+      `generated fontSize -> ${fontSize},
+      svg width -> ${svgWidth},
+      image width -> ${imageWidth},
+      svg height -> ${svgHeight},
+      image height -> ${imageHeight}`,
+    );
+
+    const svg = `
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="${svgWidth}px"
+      height="${svgHeight}px"
+      viewBox="0 0 ${svgWidth} ${svgHeight}"
+      overflow="auto"
+    >
+    <style>
+    .title { fill: rgba(${COLORS[color]});
+    font-size: ${fontSize}px;
+    font-weight: bold;
+    text-align: center;
+  }
+    </style>
+    <text
+      x="50%"
+    y="50%"
+    text-anchor="middle"
+    dominant-baseline="middle"
+    class="title"
+  >
+    ${text}
+  </text>
+    </svg>
+  `;
+
+    const svgBuffer = Buffer.from(svg);
+
+    return sharp(svgBuffer).png().toBuffer();
+  }
 
   private generateSingleWatermarkSvg({
     text,
@@ -432,6 +502,8 @@ export class WatermarkService {
     const dynamicSize = Math.floor(
       (imageWidth * weightCoefficient) / textLength,
     );
+
+    console.log(dynamicSize, defaultFontSize);
 
     return dynamicSize > defaultFontSize ? defaultFontSize : dynamicSize;
   }
