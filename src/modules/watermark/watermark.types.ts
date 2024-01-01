@@ -55,26 +55,8 @@ export type GenerateRotateArgsProps = Pick<
   GenerateRotateArgsKeys
 >;
 
-export type GeneratePatternProps = {
-  size: Size;
-  text: string;
-  y: number;
-  x: number;
-  fontSize: number;
-  imageWidth: number;
-  imageHeight: number;
-};
-
-export type GetFontSizeProps = {
-  textLength: number;
-  imageWidth: number;
-  size?: Size;
-};
-
 export type SizeData = {
   weightCoefficient: number;
-  x: Record<WatermarkType, Record<PositionType, number> | number>;
-  y: Record<WatermarkType, Record<PositionType, number> | number>;
   defaultFontSize: number;
 };
 
@@ -100,11 +82,6 @@ export type CompositeImageAndWatermarkPatternProps = {
   width: number;
   size: Size;
 };
-
-export type GetXCoordinateProps = Pick<
-  Required<GenerateWatermarkProps>,
-  'position' | 'imageWidth' | 'text'
-> & { fontSize: number };
 
 export type GeneratePositionCoordinatesProps = {
   height: number;
