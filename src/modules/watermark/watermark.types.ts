@@ -15,6 +15,12 @@ export type PositionType = keyof typeof POSITION_TYPES;
 
 export type SetPositionKeys = 'position' | 'imageHeight' | 'imageWidth';
 
+export type SetWatermarkProps = {
+  image: Buffer;
+  watermark: Buffer | string;
+  options: Partial<GenerateWatermarkProps>;
+};
+
 export type SetTextWatermarkProps = {
   file: Buffer;
   text: string;

@@ -21,6 +21,7 @@ import {
   SetSizeToImageWatermarkProps,
   CompositeImageAndWatermarkPatternProps,
   GeneratePositionCoordinatesProps,
+  SetWatermarkProps,
 } from './watermark.types';
 
 @Injectable()
@@ -29,6 +30,33 @@ export class WatermarkService {
   constructor() {}
 
   //CORE PUBLIC METHODS FOR GENERATE WATERMARKS WITH TEXT OR IMAGE
+
+  async setWatermarkToImage({
+    image,
+    watermark,
+    options,
+  }: SetWatermarkProps): Promise<Buffer> {
+    try {
+      if (typeof watermark === 'string') {
+        return this.createImageWithTextWatermark({
+          file: image,
+          text: watermark,
+          options,
+        });
+      } else if (typeof watermark === 'object' && Buffer.isBuffer(watermark)) {
+        return this.createImageWithImageWatermark({
+          file: image,
+          watermark,
+          options,
+        });
+      } else {
+        throw new Error('invalid format of watermark');
+      }
+    } catch (error) {
+      this.logger.error(error?.message ?? JSON.stringify(error));
+      throw new Error(error);
+    }
+  }
 
   async createImageWithImageWatermark({
     file,
@@ -310,7 +338,6 @@ export class WatermarkService {
     text-align: center;
   }
     </style>
-    <rect x="0" y="0" width="${svgWidth}" height="${svgHeight}" stroke="red" stroke-width="3px" fill="white"/>
     <text
       x="50%"
     y="50%"

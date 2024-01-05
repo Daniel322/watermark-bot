@@ -203,6 +203,32 @@ describe('WatermarkService', () => {
       expect(service['getImageMetadata']).toHaveBeenCalledTimes(1);
     });
 
+    it('should call createImageWithImageWatermark', async () => {
+      jest.spyOn(
+        service,
+        'createImageWithImageWatermark' as keyof WatermarkService,
+      );
+
+      await service.createImageWithTextWatermark({ file, text: 'test' });
+
+      expect(service['createImageWithImageWatermark']).toHaveBeenCalled();
+      expect(service['createImageWithImageWatermark']).toHaveBeenCalledTimes(1);
+    });
+
+    it('should call generateImageFromWatermarkText', async () => {
+      jest.spyOn(
+        service,
+        'generateImageFromWatermarkText' as keyof WatermarkService,
+      );
+
+      await service.createImageWithTextWatermark({ file, text: 'test' });
+
+      expect(service['generateImageFromWatermarkText']).toHaveBeenCalled();
+      expect(service['generateImageFromWatermarkText']).toHaveBeenCalledTimes(
+        1,
+      );
+    });
+
     it('should throw an error', async () => {
       const badBuffer = Buffer.from([0, 0, 0, 0]);
       expect(async () => {
