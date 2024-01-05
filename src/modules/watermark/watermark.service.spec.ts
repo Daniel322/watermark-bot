@@ -339,4 +339,48 @@ describe('WatermarkService', () => {
       }).rejects.toThrow();
     });
   });
+
+  describe('setWatermarkToImage', () => {
+    const image = readFileSync(join(process.cwd(), '7000.png'));
+    const options = {};
+
+    it('should be defined', async () => {
+      expect(
+        await service.setWatermarkToImage({
+          image,
+          watermark: image,
+          options,
+        }),
+      ).toBeDefined();
+    });
+
+    it('should return instance of buffer', async () => {
+      expect(
+        await service.setWatermarkToImage({ image, watermark: image, options }),
+      ).toBeInstanceOf(Buffer);
+    });
+
+    it('should call create image with image watermark method', async () => {
+      jest.spyOn(service, 'createImageWithTextWatermark');
+      jest.spyOn(service, 'createImageWithImageWatermark');
+
+      await service.setWatermarkToImage({ image, watermark: image, options });
+
+      expect(service.createImageWithImageWatermark).toHaveBeenCalled();
+      expect(service.createImageWithImageWatermark).toHaveBeenCalledTimes(1);
+      expect(service.createImageWithTextWatermark).toHaveBeenCalledTimes(0);
+    });
+
+    it('should call create image with image watermark after calling create image with text watermark', async () => {
+      jest.spyOn(service, 'createImageWithTextWatermark');
+      jest.spyOn(service, 'createImageWithImageWatermark');
+
+      await service.setWatermarkToImage({ image, watermark: 'test', options });
+
+      expect(service.createImageWithTextWatermark).toHaveBeenCalled();
+      expect(service.createImageWithImageWatermark).toHaveBeenCalled();
+      expect(service.createImageWithTextWatermark).toHaveBeenCalledTimes(1);
+      expect(service.createImageWithImageWatermark).toHaveBeenCalledTimes(1);
+    });
+  });
 });

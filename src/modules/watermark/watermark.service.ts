@@ -34,7 +34,11 @@ export class WatermarkService {
   async setWatermarkToImage({
     image,
     watermark,
-    options,
+    options = {
+      type: WATERMARK_TYPES.single,
+      size: SIZES.s,
+      position: POSITION_TYPES.centerCenter,
+    },
   }: SetWatermarkProps): Promise<Buffer> {
     try {
       if (typeof watermark === 'string') {
@@ -43,15 +47,17 @@ export class WatermarkService {
           text: watermark,
           options,
         });
-      } else if (typeof watermark === 'object' && Buffer.isBuffer(watermark)) {
+      }
+
+      if (Buffer.isBuffer(watermark)) {
         return this.createImageWithImageWatermark({
           file: image,
           watermark,
           options,
         });
-      } else {
-        throw new Error('invalid format of watermark');
       }
+
+      throw new Error('invalid format of watermark');
     } catch (error) {
       this.logger.error(error?.message ?? JSON.stringify(error));
       throw new Error(error);
