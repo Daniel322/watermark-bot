@@ -90,11 +90,8 @@ const makeTelegrafUserStateServiceMock = () => ({
 });
 
 const makeWatermarkServiceMock = () => ({
-  createImageWithTextWatermark: jest.fn(({ file }) => {
-    return file;
-  }),
-  createImageWithImageWatermark: jest.fn(({ watermark }) => {
-    return watermark;
+  setWatermarkToImage: jest.fn(({ image }) => {
+    return image;
   }),
 });
 
@@ -697,7 +694,7 @@ describe('TelegrafService', () => {
       );
     });
 
-    it('Should call createImageWithImageWatermark if watermark file was given', async () => {
+    it('Should call setWatermarkToImage if watermark file was given', async () => {
       const ctx = makeTelegrafMockContext({
         callback_query: { data: '1', from: { id: Date.now() } },
       });
@@ -708,14 +705,14 @@ describe('TelegrafService', () => {
         watermarkFile: Buffer.from('test'),
       }));
 
-      watermarkService.createImageWithImageWatermark.mockClear();
+      watermarkService.setWatermarkToImage.mockClear();
 
       await service.onColor(ctx);
 
-      expect(watermarkService.createImageWithImageWatermark).toHaveBeenCalled();
+      expect(watermarkService.setWatermarkToImage).toHaveBeenCalled();
     });
 
-    it('Should call createImageWithTextWatermark if watermark text was given', async () => {
+    it('Should call setWatermarkToImage if watermark text was given', async () => {
       const ctx = makeTelegrafMockContext({
         callback_query: { data: '1', from: { id: Date.now() } },
       });
@@ -724,13 +721,14 @@ describe('TelegrafService', () => {
       telegrafUsersStatesService.getStateData = jest.fn(() => ({
         file: Buffer.from('test'),
         watermarkFile: null,
+        text: 'test',
       }));
 
-      watermarkService.createImageWithTextWatermark.mockClear();
+      watermarkService.setWatermarkToImage.mockClear();
 
       await service.onColor(ctx);
 
-      expect(watermarkService.createImageWithTextWatermark).toHaveBeenCalled();
+      expect(watermarkService.setWatermarkToImage).toHaveBeenCalled();
     });
   });
 
