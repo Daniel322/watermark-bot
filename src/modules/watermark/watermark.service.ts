@@ -4,7 +4,6 @@ import sharp, { OverlayOptions, Metadata } from 'sharp';
 
 import {
   COLORS,
-  COLORS_TYPES,
   DICTIONARY,
   PATTERNS_FOR_COMPOSITE,
   POSITION_COORDINATES_COEFFICIENTS,
@@ -14,18 +13,15 @@ import {
   WATERMARK_TYPES,
 } from './watermark.constants';
 import {
-  GetFontSizeProps,
   GenerateWatermarkProps,
-  GeneratePatternProps,
   SetTextWatermarkProps,
-  WatermarkType,
   CompositePosition,
   PositionType,
   SetImageWatermarkProps,
   SetSizeToImageWatermarkProps,
   CompositeImageAndWatermarkPatternProps,
-  GetXCoordinateProps,
   GeneratePositionCoordinatesProps,
+  SetWatermarkProps,
 } from './watermark.types';
 
 @Injectable()
@@ -35,6 +31,39 @@ export class WatermarkService {
 
   //CORE PUBLIC METHODS FOR GENERATE WATERMARKS WITH TEXT OR IMAGE
 
+  async setWatermarkToImage({
+    image,
+    watermark,
+    options = {
+      type: WATERMARK_TYPES.single,
+      size: SIZES.s,
+      position: POSITION_TYPES.centerCenter,
+    },
+  }: SetWatermarkProps): Promise<Buffer> {
+    try {
+      if (typeof watermark === 'string') {
+        return this.createImageWithTextWatermark({
+          file: image,
+          text: watermark,
+          options,
+        });
+      }
+
+      if (Buffer.isBuffer(watermark)) {
+        return this.createImageWithImageWatermark({
+          file: image,
+          watermark,
+          options,
+        });
+      }
+
+      throw new Error('invalid format of watermark');
+    } catch (error) {
+      this.logger.error(error?.message ?? JSON.stringify(error));
+      throw new Error(error);
+    }
+  }
+
   async createImageWithImageWatermark({
     file,
     watermark,
@@ -42,6 +71,8 @@ export class WatermarkService {
       position = POSITION_TYPES.centerCenter,
       size = SIZES.s,
       type = WATERMARK_TYPES.single,
+      imageHeight,
+      imageWidth,
       ...options
     } = {
       type: WATERMARK_TYPES.single,
@@ -50,12 +81,16 @@ export class WatermarkService {
     },
   }: SetImageWatermarkProps): Promise<Buffer> {
     try {
-      const { width, height } = await this.getImageMetadata(file);
+      if (!imageHeight || !imageWidth) {
+        const { width, height } = await this.getImageMetadata(file);
+        imageWidth = width;
+        imageHeight = height;
+      }
 
       const sizedWatermark = await this.setOptionsToImageWatermark({
         watermark,
-        imageHeight: height,
-        imageWidth: width,
+        imageHeight,
+        imageWidth,
         size,
         ...options,
       });
@@ -65,8 +100,8 @@ export class WatermarkService {
 
         const compositeOptions: CompositePosition =
           this.generatePositionCoordinates({
-            height,
-            width,
+            height: imageHeight,
+            width: imageWidth,
             coefficients,
             position,
           });
@@ -79,8 +114,8 @@ export class WatermarkService {
           image: file,
           watermark: sizedWatermark,
           size,
-          height,
-          width,
+          height: imageHeight,
+          width: imageWidth,
         });
       }
     } catch (error) {
@@ -92,7 +127,7 @@ export class WatermarkService {
   async createImageWithTextWatermark({
     file,
     text,
-    options: { type = WATERMARK_TYPES.single, ...options } = {
+    options = {
       type: WATERMARK_TYPES.single,
     },
   }: SetTextWatermarkProps): Promise<Buffer> {
@@ -106,16 +141,16 @@ export class WatermarkService {
         ...options,
       };
 
-      const textWatermarkBuffer =
-        type === WATERMARK_TYPES.single
-          ? this.generateSingleWatermarkSvg(generateOptions)
-          : this.generatePatternWatermarkSvg(generateOptions);
+      const imageFromTextBuffer = await this.generateImageFromWatermarkText(
+        text,
+        generateOptions,
+      );
 
-      const compositeOptions: CompositePosition = { top: 0, left: 0 };
-
-      const imageWithWatermark = await this.compositeImageAndWatermark(file, [
-        { input: textWatermarkBuffer, ...compositeOptions },
-      ]);
+      const imageWithWatermark = await this.createImageWithImageWatermark({
+        file,
+        watermark: imageFromTextBuffer,
+        options: generateOptions,
+      });
 
       return imageWithWatermark;
     } catch (error) {
@@ -264,235 +299,65 @@ export class WatermarkService {
 
   //METHODS FOR SET OPTIONS TO TEXT WATERMARK
 
-  private generateSingleWatermarkSvg({
-    text,
-    imageWidth,
-    imageHeight,
-    size = SIZES.s,
-    opacity = 1,
-    color = COLORS_TYPES.white,
-    rotate = 0,
-    position = POSITION_TYPES.centerCenter,
-  }: GenerateWatermarkProps): Buffer {
-    const fontSize = this.getFontSize({
-      size,
-      textLength: text.length,
-      imageWidth,
-    });
-
-    const { y } = DICTIONARY[size];
-
-    const x = this.getXCoordinateUtil({
-      imageWidth,
-      fontSize,
-      text,
-      position,
-    });
-
-    const svg = `
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        width="${imageWidth}"
-        height="${imageHeight}"
-        viewBox="0 0 ${imageWidth} ${imageHeight}"
-        class="svg"
-      >
-      <style>
-      .svg {
-      }
-      .title { fill: rgba(${COLORS[color]}, ${opacity});
-      font-size: ${fontSize}px;
-      font-weight: bold;
-      text-align: left;
-      transform-box: content-box;
-    }
-      </style>
-      <text
-        x="${x}%"
-      y="${this.getCoordUtil(y, WATERMARK_TYPES.single, position)}%"
-      text-anchor="start"
-      filter="url(#solid)"
-      class="title"
-      id="text"
-      transform="rotate(${rotate})"
-    >
-      ${text}
-    </text>
-      </svg>
-    `;
-
-    return Buffer.from(svg);
-  }
-
-  private generatePatternWatermarkSvg({
-    text,
-    size = SIZES.s,
-    imageWidth,
-    imageHeight,
-    opacity = 1,
-    color = COLORS_TYPES.white,
-  }: GenerateWatermarkProps): Buffer {
-    const { weightCoefficient, x, y } = DICTIONARY[size];
-
-    const dynamicFontSize = (imageWidth * weightCoefficient) / text.length;
-
-    const fontSize =
-      dynamicFontSize > imageHeight ? imageHeight : dynamicFontSize;
-
-    const patternText = this.generatePattern({
-      size,
-      text,
-      x: this.getCoordUtil(x, WATERMARK_TYPES.pattern),
-      y: this.getCoordUtil(y, WATERMARK_TYPES.pattern),
-      fontSize,
+  private async generateImageFromWatermarkText(
+    text: string,
+    {
+      color,
+      size = SIZES.s,
       imageWidth,
       imageHeight,
-    });
+    }: Partial<GenerateWatermarkProps>,
+  ): Promise<Buffer> {
+    const svgWidth = Math.floor(imageWidth * (SIZE_COEFFICIENTS[size] + 0.2));
+    const svgHeight = Math.floor(imageHeight * (SIZE_COEFFICIENTS[size] + 0.2));
+
+    const { defaultFontSize } = DICTIONARY[size];
+
+    const dynamicSize = Math.floor(
+      svgWidth / (text.length > 6 ? text.length / 2 : text.length),
+    );
+
+    const fontSize =
+      dynamicSize > defaultFontSize ? defaultFontSize : dynamicSize;
+
+    this.logger.log(
+      `generated fontSize -> ${dynamicSize},
+      choosed font size -> ${fontSize},
+      svg width -> ${svgWidth},
+      image width -> ${imageWidth},
+      svg height -> ${svgHeight},
+      image height -> ${imageHeight}`,
+    );
 
     const svg = `
-    <svg width="${imageWidth}" height="${imageHeight}">
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="${svgWidth}px"
+      height="${svgHeight}px"
+      viewBox="0 0 ${svgWidth} ${svgHeight}"
+      overflow="auto"
+    >
     <style>
-    .title {
-      fill: rgba(${COLORS[color]}, ${opacity});
-      font-size: ${fontSize}px;
-      font-weight: bold;
-      textAlign: left;
-    }
+    .title { fill: rgba(${COLORS[color]});
+    font-size: ${fontSize}px;
+    font-weight: bold;
+    text-align: center;
+  }
     </style>
-    ${patternText}
+    <text
+      x="50%"
+    y="50%"
+    text-anchor="middle"
+    dominant-baseline="middle"
+    class="title"
+  >
+    ${text}
+  </text>
     </svg>
   `;
 
-    return Buffer.from(svg);
-  }
+    const svgBuffer = Buffer.from(svg);
 
-  private generatePattern({
-    size,
-    text,
-    x,
-    y,
-    fontSize,
-    imageHeight,
-    imageWidth,
-  }: GeneratePatternProps): string {
-    const patternParts: string[] = [];
-
-    const dynamicColumns = Math.floor(imageHeight / fontSize);
-
-    const dynamicRows = Math.floor(imageWidth / (text.length * fontSize));
-
-    const partInColumn = dynamicColumns < 1 ? 1 : dynamicColumns;
-
-    const partInRow = dynamicRows < 1 ? 1 : dynamicRows;
-
-    this.logger.log(`
-      dynamic part in column -> ${partInColumn}
-      dynamic part in row -> ${partInRow}
-      image height -> ${imageHeight}
-      image width -> ${imageWidth}
-      text -> ${text}
-      fontSize -> ${fontSize}
-    `);
-
-    let partY = y;
-
-    if (partInColumn === 1) {
-      partY = size === SIZES.s ? 50 : 75;
-    }
-    if (partInColumn > 1 && partInColumn <= 10) {
-      partY = imageHeight / (partInColumn * 8);
-    }
-    if (partInColumn > 10) {
-      partY = 0;
-    }
-
-    this.logger.log(`start y coordinate of this pattern is -> ${partY}`);
-
-    for (let column = 0; column < partInColumn; column++) {
-      let partX = x;
-      for (let row = 0; row < partInRow; row++) {
-        patternParts.push(
-          `<text x="${partX}%" y="${partY}%" text-anchor="start" class="title">${text}</text>`,
-        );
-        partX += 100 / partInRow;
-      }
-      partY += 100 / partInColumn;
-    }
-
-    return patternParts.join('');
-  }
-
-  private getFontSize({
-    size = SIZES.s,
-    textLength,
-    imageWidth,
-  }: GetFontSizeProps) {
-    const { defaultFontSize, weightCoefficient } = DICTIONARY[size];
-
-    const dynamicSize = Math.floor(
-      (imageWidth * weightCoefficient) / textLength,
-    );
-
-    return dynamicSize > defaultFontSize ? defaultFontSize : dynamicSize;
-  }
-
-  private getCoordUtil(
-    value: Record<WatermarkType, Record<PositionType, number> | number>,
-    type: WatermarkType,
-    position: PositionType = POSITION_TYPES.centerCenter,
-  ) {
-    return type === WATERMARK_TYPES.pattern
-      ? value[type]
-      : value[type][position];
-  }
-
-  private getXCoordinateUtil({
-    imageWidth,
-    text,
-    position,
-    fontSize,
-  }: GetXCoordinateProps): number {
-    const leftPositionArr: PositionType[] = [
-      'topLeft',
-      'centerLeft',
-      'bottomLeft',
-    ];
-
-    const centerPositionArr: PositionType[] = [
-      'topCenter',
-      'centerCenter',
-      'bottomCenter',
-    ];
-
-    const rightPositionArr: PositionType[] = [
-      'bottomRight',
-      'centerRight',
-      'topRight',
-    ];
-
-    if (
-      !leftPositionArr.includes(position) &&
-      !centerPositionArr.includes(position) &&
-      !rightPositionArr.includes(position)
-    ) {
-      this.logger.error('INVALID POSITION');
-      throw new Error('INVALID POSITION');
-    }
-
-    if (leftPositionArr.includes(position)) {
-      return 1;
-    }
-
-    if (centerPositionArr.includes(position)) {
-      return Math.floor(
-        (((imageWidth - (text.length * fontSize) / 2) / 2) * 100) / imageWidth,
-      );
-    }
-
-    if (rightPositionArr.includes(position)) {
-      return Math.floor(
-        ((imageWidth - text.length * fontSize) * 100) / imageWidth,
-      );
-    }
+    return sharp(svgBuffer).png().toBuffer();
   }
 }

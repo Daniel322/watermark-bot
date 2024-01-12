@@ -26,12 +26,11 @@ export class WatermarkController {
     @Res() response: Response,
   ) {
     try {
-      const imgWithWatermark =
-        await this.watermarkService.createImageWithTextWatermark({
-          file: files[0].buffer,
-          text,
-          options,
-        });
+      const imgWithWatermark = await this.watermarkService.setWatermarkToImage({
+        image: files[0].buffer,
+        watermark: text,
+        options,
+      });
 
       const stream = Readable.from(imgWithWatermark);
 
@@ -50,12 +49,11 @@ export class WatermarkController {
     @Res() response: Response,
   ) {
     try {
-      const imgWithWatermark =
-        await this.watermarkService.createImageWithImageWatermark({
-          file: files[0].buffer,
-          watermark: files[1].buffer,
-          options,
-        });
+      const imgWithWatermark = await this.watermarkService.setWatermarkToImage({
+        image: files[0].buffer,
+        watermark: files[1].buffer,
+        options,
+      });
 
       const stream = Readable.from(imgWithWatermark);
 
